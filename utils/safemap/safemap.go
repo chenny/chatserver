@@ -65,3 +65,10 @@ func (this *SafeMap) Items() map[interface{}]interface{} {
 	defer this.lock.RUnlock()
 	return this.mp
 }
+
+// Size returns the size of the safemap
+func (this *SafeMap) Size() int {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return len(this.mp)
+}

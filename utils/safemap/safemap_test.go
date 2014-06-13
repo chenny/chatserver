@@ -18,6 +18,10 @@ func TestSafeMap(t *testing.T) {
 		t.Error("get error")
 	}
 
+	if mp.Size() != 1 {
+		t.Error("size error")
+	}
+
 	mp.Delete("lijie")
 	if mp.Check("lijie") {
 		t.Error("delete error")
