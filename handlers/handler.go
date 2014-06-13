@@ -104,7 +104,7 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 		// 这里比较复杂，后续再优化(可以多个离线消息一起发送)
 		// 得到所有离线消息的id
 		msgids := dao.OfflineMsgGetIds(uuid)
-		fmt.Println(uuid, "有离线消息，数量为：", len(msgids))
+		// fmt.Println(uuid, "有离线消息，数量为：", len(msgids))
 		var (
 			k   int
 			err error
@@ -113,7 +113,7 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 			if err = SendByteStream(conn, []byte(dao.IdMsgGetMsgFromId(msgids[k]))); err != nil {
 				break
 			}
-			fmt.Println("正在发送离线消息", k, err, dao.IdMsgGetMsgFromId(msgids[k]))
+			// fmt.Println("正在发送离线消息", k, err, dao.IdMsgGetMsgFromId(msgids[k]))
 		}
 
 		if err != nil {
@@ -124,7 +124,7 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 			dao.OfflineMsgDeleteIds(uuid, msgids[k])
 		}
 	} else {
-		fmt.Println("没有离线消息")
+		// fmt.Println("没有离线消息")
 	}
 
 }
@@ -147,13 +147,13 @@ func HandleClientPing(conn *net.TCPConn, recPacket *packet.Packet) {
 	readMsg := &pb.PbClientPing{}
 	packet.Unpack(recPacket, readMsg)
 
-	fmt.Println("ping:", readMsg.GetPing())
-	fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
+	// fmt.Println("ping:", readMsg.GetPing())
+	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
 }
 
 // 处理客户端之间的消息转发
 func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
-	fmt.Println("处理消息转发")
+	// fmt.Println("处理消息转发")
 	// read
 	readMsg := &pb.PbC2CTextChat{}
 	packet.Unpack(recPacket, readMsg)
@@ -181,18 +181,18 @@ func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
 		log.Printf("%v\r\n", err)
 		return
 	}
-	fmt.Println("from_uuid:", from_uuid, "to_uuid:", to_uuid)
-	fmt.Println("判断是否离线")
+	// fmt.Println("from_uuid:", from_uuid, "to_uuid:", to_uuid)
+	// fmt.Println("判断是否离线")
 	// 若 to_uuid 在线，则转发该消息，发送失败 或者 to_uuid不在线 则保存为离线消息
 	if dao.UuidCheckOnline(to_uuid) {
-		fmt.Println("在线消息转发")
+		// fmt.Println("在线消息转发")
 		to_conn := UuidMapConn.Get(to_uuid).(*net.TCPConn)
 		if SendByteStream(to_conn, pac.GetBytes()) != nil {
-			fmt.Println("发送失败转离线消息保存")
+			// fmt.Println("发送失败转离线消息保存")
 			dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
 		}
 	} else {
-		fmt.Println("不在线转离线消息保存")
+		// fmt.Println("不在线转离线消息保存")
 		dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
 	}
 }

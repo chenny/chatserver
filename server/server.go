@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/gansidui/chatserver/handlers"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/utils/convert"
@@ -99,6 +100,9 @@ func (this *Server) dealSpamConn() {
 				}
 			}
 		}
+
+		// 输出当前的连接数
+		fmt.Println("当前连接数: ", handlers.ConnMapUuid.Size())
 	}
 }
 

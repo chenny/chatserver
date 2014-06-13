@@ -20,8 +20,13 @@ import (
 )
 
 var (
-	total int // uuid数量, uuid名字为 1---total
+	prefix string // uuid的前缀为随机生成，方便多个客户端测试，避免将其他客户端踢下线
+	total  int    // uuid数量, uuid名字为 1---total
 )
+
+func getUuid(uuid int) string {
+	return prefix + strconv.Itoa(uuid)
+}
 
 // 发送心跳包
 func ping(conn *net.TCPConn) {
@@ -41,7 +46,7 @@ func ping(conn *net.TCPConn) {
 }
 
 // 处理收发数据包
-func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet.Packet, chStop <-chan bool) {
+func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Packet, chStop <-chan bool) {
 	defer func() {
 		if e := recover(); e != nil {
 			log.Printf("Panic: %v\r\n")
@@ -59,7 +64,7 @@ func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet
 				readMsg := &pb.PbServerAcceptLogin{}
 				packet.Unpack(p, readMsg)
 				if readMsg.GetLogin() == true {
-					log.Printf("[%v]: [%v]---[%v]\r\n", uuid, readMsg.GetTipsMsg(), convert.TimestampToTimeString(readMsg.GetTimestamp()))
+					log.Printf("[%v]: [%v]---[%v]\r\n", getUuid(uuid), readMsg.GetTipsMsg(), convert.TimestampToTimeString(readMsg.GetTimestamp()))
 				}
 
 				// write，随机向10个人发送消息
@@ -68,8 +73,8 @@ func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet
 					to_uuid := rand.Intn(total) + 1 // [1, total]
 
 					writeMsg := &pb.PbC2CTextChat{
-						FromUuid:  proto.String(uuid),
-						ToUuid:    proto.String(strconv.Itoa(to_uuid)),
+						FromUuid:  proto.String(getUuid(uuid)),
+						ToUuid:    proto.String(getUuid(to_uuid)),
 						TextMsg:   proto.String("hello,世界！！！"),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
@@ -84,10 +89,10 @@ func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet
 				to_uuid := readMsg.GetToUuid()
 				txt_msg := readMsg.GetTextMsg()
 				timestamp := readMsg.GetTimestamp()
-				if to_uuid != uuid {
-					log.Printf("[%v]收到[%v]发来的不属于自己的包,该包应该属于[%v]\r\n", uuid, from_uuid, to_uuid)
+				if to_uuid != getUuid(uuid) {
+					log.Printf("[%v]收到[%v]发来的不属于自己的包,该包应该属于[%v]\r\n", getUuid(uuid), from_uuid, to_uuid)
 				} else {
-					log.Printf("[%v]：[%v]收到来自[%v]的消息: [%v]", convert.TimestampToTimeString(timestamp), uuid, from_uuid, txt_msg)
+					log.Printf("[%v]：[%v]收到来自[%v]的消息: [%v]", convert.TimestampToTimeString(timestamp), getUuid(uuid), from_uuid, txt_msg)
 
 					// write, 回复时在原基础上加点消息，控制长度范围
 					var to_txt_msg string
@@ -99,7 +104,7 @@ func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet
 					}
 
 					writeMsg := &pb.PbC2CTextChat{
-						FromUuid:  proto.String(uuid),
+						FromUuid:  proto.String(getUuid(uuid)),
 						ToUuid:    proto.String(from_uuid),
 						TextMsg:   proto.String(to_txt_msg),
 						Timestamp: proto.Int64(time.Now().Unix()),
@@ -108,17 +113,17 @@ func handlePackets(uuid string, conn *net.TCPConn, receivePackets <-chan *packet
 				}
 
 			} else {
-				log.Printf("[%v]收到未知包\r\n", uuid)
+				log.Printf("[%v]收到未知包\r\n", getUuid(uuid))
 			}
 		}
 	}
 }
 
 // 模拟客户端(uuid)
-func testClient(uuid string) {
+func testClient(uuid int) {
 	defer func() {
 		if e := recover(); e != nil {
-			log.Printf("uuid: [%v] Panic: %v\r\n", uuid, e)
+			log.Printf("uuid: [%v] Panic: %v\r\n", getUuid(uuid), e)
 		}
 	}()
 
@@ -126,19 +131,19 @@ func testClient(uuid string) {
 	tcpAddr, _ := net.ResolveTCPAddr("tcp4", config.Addr)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		log.Printf("[%v] DialTCP失败: %v\r\n", uuid, err)
+		log.Printf("[%v] DialTCP失败: %v\r\n", getUuid(uuid), err)
 		return
 	}
 
 	// 发送登陆请求
 	writeLoginMsg := &pb.PbClientLogin{
-		Uuid:      proto.String(uuid),
+		Uuid:      proto.String(getUuid(uuid)),
 		Version:   proto.Float32(3.14),
 		Timestamp: proto.Int64(time.Now().Unix()),
 	}
 	err = handlers.SendPacket(conn, packet.PK_ClientLogin, writeLoginMsg)
 	if err != nil {
-		log.Printf("[%v] 发送登陆包失败: %v\r\n", uuid, err)
+		log.Printf("[%v] 发送登陆包失败: %v\r\n", getUuid(uuid), err)
 		return
 	}
 
@@ -192,7 +197,7 @@ func testClient(uuid string) {
 func main() {
 	for i := 1; i <= total; i++ {
 		time.Sleep(50 * time.Millisecond)
-		go testClient(strconv.Itoa(i))
+		go testClient(i)
 	}
 
 	ch := make(chan os.Signal)
@@ -208,4 +213,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err, "\r\n")
 	}
+
+	//
+	rand.Seed(time.Now().UnixNano())
+	x := rand.Intn(10000)
+	y := rand.Intn(10000)
+	prefix = "[" + strconv.Itoa(x) + strconv.Itoa(y) + "]--> "
 }

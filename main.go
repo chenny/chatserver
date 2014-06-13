@@ -24,7 +24,7 @@ func init() {
 
 	// 设置cpu数量和日志目录
 	runtime.GOMAXPROCS(config.NumCpu)
-	// setLogOutput(config.LogFile)
+	setLogOutput(config.LogFile)
 
 	// 初始化dao
 	dao.IdMsgInit(config.IdToMsgDB)
