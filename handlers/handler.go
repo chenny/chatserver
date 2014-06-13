@@ -99,9 +99,6 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 	}
 	SendPacket(conn, packet.PK_ServerAcceptLogin, writeMsg)
 
-	// 暂停一下让客户端完成初始化
-	time.Sleep(2 * time.Second)
-
 	// 检查是否有该uuid的离线消息存在，若有，则发送其离线消息
 	if dao.OfflineMsgCheck(uuid) {
 		// 这里比较复杂，后续再优化(可以多个离线消息一起发送)

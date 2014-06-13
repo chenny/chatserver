@@ -86,12 +86,13 @@ func (this *Server) Start(listener *net.TCPListener) {
 // 若conn的loginstatus不为nil,则表示loginstatus为该conn连接服务器时的时间戳(time.Time)
 // 判断这个时间戳是否已经超过登陆限制时间，若超过，则断开。
 func (this *Server) dealSpamConn() {
-	ticker := time.NewTicker(30 * time.Second)
+	limitTime := 60 * time.Second
+	ticker := time.NewTicker(limitTime)
 	for _ = range ticker.C {
 		items := handlers.ConnMapLoginStatus.Items()
 		for conn, loginstatus := range items {
 			if loginstatus != nil {
-				deadline := loginstatus.(time.Time).Add(30 * time.Second)
+				deadline := loginstatus.(time.Time).Add(limitTime)
 				if time.Now().After(deadline) {
 					conn.(*net.TCPConn).Close()
 					handlers.ConnMapLoginStatus.Delete(conn.(*net.TCPConn))
