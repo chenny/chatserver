@@ -1,99 +1,60 @@
 package aes
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
-	"errors"
-	"fmt"
-	"io"
 )
 
-// AES是对称加密
-type AES struct {
-	block cipher.Block
-}
+// AES是对称加密算法
+// AES-128。key长度：16, 24, 32 bytes 对应 AES-128, AES-192, AES-256
+// 记住每次加密解密前都要设置iv.
 
 // 该包默认的密匙
 const defaultAesKey = "12345abcdef67890"
 
-var defaultAES *AES
-
-func NewAES() *AES {
-	return &AES{}
-}
-
-// 设置密匙
-func (this *AES) SetAesKey(aesKey string) error {
-	cblock, err := aes.NewCipher([]byte(aesKey))
-	if err != nil {
-		return fmt.Errorf("aes.NewCipher: %v", err.Error())
-	}
-	this.block = cblock
-	return nil
-}
-
-// AES加密
-func (this *AES) AesEncrypt(src []byte) ([]byte, error) {
-	// 验证输入参数
-	// 原始数据长度需要为aes.BlockSize的整倍数， aes.BlockSize == 16
-	if len(src)%aes.BlockSize != 0 {
-		return nil, errors.New("crypto/cipher: input not full blocks")
-	}
-
-	encryptText := make([]byte, aes.BlockSize+len(src))
-	iv := encryptText[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
-	}
-
-	mode := cipher.NewCBCEncrypter(this.block, iv)
-	mode.CryptBlocks(encryptText[aes.BlockSize:], src)
-
-	return encryptText, nil
-}
-
-// AES解密
-func (this *AES) AesDecrypt(src []byte) ([]byte, error) {
-	// hex
-	decryptText, err := hex.DecodeString(fmt.Sprintf("%x", string(src)))
+func AesEncrypt(plaintext []byte) ([]byte, error) {
+	key := []byte(defaultAesKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	// 长度不能小于aes.BlockSize
-	if len(decryptText) < aes.BlockSize {
-		return nil, errors.New("crypto/cipher: ciphertext too short")
-	}
+	blockSize := block.BlockSize()
+	plaintext = PKCS5Padding(plaintext, blockSize)
 
-	iv := decryptText[:aes.BlockSize]
-	decryptText = decryptText[aes.BlockSize:]
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
+	ciphertext := make([]byte, len(plaintext))
 
-	// 验证输入参数
-	// 原始数据长度需要为aes.BlockSize的整倍数， aes.BlockSize == 16
-	if len(decryptText)%aes.BlockSize != 0 {
-		return nil, errors.New("crypto/cipher: ciphertext is not a multiple of the block size")
-	}
-
-	mode := cipher.NewCBCDecrypter(this.block, iv)
-	mode.CryptBlocks(decryptText, decryptText)
-
-	return decryptText, nil
+	blockMode.CryptBlocks(ciphertext, plaintext)
+	return ciphertext, nil
 }
 
-func init() {
-	defaultAES = NewAES()
-	err := defaultAES.SetAesKey(defaultAesKey)
+func AesDecrypt(ciphertext []byte) ([]byte, error) {
+	key := []byte(defaultAesKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic("defaultAES.SetAesKey: " + err.Error())
+		return nil, err
 	}
+
+	blockSize := block.BlockSize()
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	plaintext := make([]byte, len(ciphertext))
+
+	blockMode.CryptBlocks(plaintext, ciphertext)
+	plaintext = PKCS5UnPadding(plaintext)
+	return plaintext, nil
 }
 
-func AesEncrypt(src []byte) ([]byte, error) {
-	return defaultAES.AesEncrypt(src)
+func PKCS5Padding(plaintext []byte, blockSize int) []byte {
+	padding := blockSize - len(plaintext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(plaintext, padtext...)
 }
 
-func AesDecrypt(src []byte) ([]byte, error) {
-	return defaultAES.AesDecrypt(src)
+func PKCS5UnPadding(plaintext []byte) []byte {
+	length := len(plaintext)
+	// 去掉最后一个字节 unpadding 次
+	unpadding := int(plaintext[length-1])
+	return plaintext[:(length - unpadding)]
 }

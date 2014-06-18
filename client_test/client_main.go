@@ -23,15 +23,13 @@ var (
 func getPacFromBuf(buf []byte, n int) *packet.Packet {
 	pacLen := convert.BytesToUint32(buf[0:4])
 	pac := &packet.Packet{
-		Len:    pacLen,
-		PadLen: convert.BytesToUint16(buf[4:6]),
-		Type:   convert.BytesToUint32(buf[6:10]),
-		Data:   buf[10:pacLen],
+		Len:  pacLen,
+		Type: convert.BytesToUint32(buf[4:8]),
+		Data: buf[8:pacLen],
 	}
 
 	if n != int(pacLen) {
 		fmt.Println("Len:", pac.Len)
-		fmt.Println("PadLen:", pac.PadLen)
 		fmt.Println("Type:", pac.Type)
 		fmt.Println("Data:", pac.Data)
 		fmt.Println("数据不完整")
@@ -50,7 +48,7 @@ func ping(conn *net.TCPConn) {
 			Ping:      proto.Bool(true),
 			Timestamp: proto.Int64(time.Now().Unix()),
 		}
-		err := handlers.SendPacket(conn, packet.PK_ClientPing, writePingMsg)
+		err := handlers.SendPbData(conn, packet.PK_ClientPing, writePingMsg)
 		if err != nil {
 			return
 		}
@@ -74,7 +72,7 @@ func testBB(i_uuid string) {
 		Version:   proto.Float32(3.14),
 		Timestamp: proto.Int64(time.Now().Unix()),
 	}
-	err = handlers.SendPacket(conn, packet.PK_ClientLogin, writeLoginMsg)
+	err = handlers.SendPbData(conn, packet.PK_ClientLogin, writeLoginMsg)
 	if err != nil {
 		log.Printf("%v 发送登陆包失败: %v\r\n", i_uuid, err)
 		return
@@ -106,10 +104,10 @@ func testBB(i_uuid string) {
 		writeC2CMsg := &pb.PbC2CTextChat{
 			FromUuid:  proto.String(i_uuid),
 			ToUuid:    proto.String(u_uuid),
-			TextMsg:   proto.String("hi, my name is " + i_uuid),
+			TextMsg:   proto.String("hi, 我的uuid是： " + i_uuid),
 			Timestamp: proto.Int64(time.Now().Unix()),
 		}
-		err := handlers.SendPacket(conn, packet.PK_C2CTextChat, writeC2CMsg)
+		err := handlers.SendPbData(conn, packet.PK_C2CTextChat, writeC2CMsg)
 		if err != nil {
 			log.Printf("%v 发送消息失败: %v\r\n", i_uuid, err)
 			return
@@ -151,10 +149,10 @@ func testBB(i_uuid string) {
 		writeC2CMsg := &pb.PbC2CTextChat{
 			FromUuid:  proto.String(to_uuid),
 			ToUuid:    proto.String(from_uuid),
-			TextMsg:   proto.String(txt_msg + "this is " + i_uuid),
+			TextMsg:   proto.String(txt_msg + "我是 " + i_uuid),
 			Timestamp: proto.Int64(timestamp),
 		}
-		err = handlers.SendPacket(conn, packet.PK_C2CTextChat, writeC2CMsg)
+		err = handlers.SendPbData(conn, packet.PK_C2CTextChat, writeC2CMsg)
 		if err != nil {
 			log.Printf("%v 回复消息失败: %v\r\n", i_uuid, err)
 			return

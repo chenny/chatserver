@@ -26,5 +26,5 @@ func TestPacket(t *testing.T) {
 
 	fmt.Println("Login:", ppd.GetLogin())
 	fmt.Println("TipsMsg:", ppd.GetTipsMsg())
-	fmt.Println("Timestamp:", convert.TimestampToTimestring(ppd.GetTimestamp()))
+	fmt.Println("Timestamp:", convert.TimestampToTimeString(ppd.GetTimestamp()))
 }

@@ -82,7 +82,7 @@ func (this *Server) Start(listener *net.TCPListener) {
 	}
 }
 
-// 处理恶意连接，定时监测。
+// 处理恶意连接，定时检测。
 // 若conn的loginstatus为nil,则说明conn已经登陆成功。
 // 若conn的loginstatus不为nil,则表示loginstatus为该conn连接服务器时的时间戳(time.Time)
 // 判断这个时间戳是否已经超过登陆限制时间，若超过，则断开。
@@ -165,16 +165,14 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 			buf = append(buf, request[:readSize]...)
 			bufLen += uint32(readSize)
 
-			// 包长(4) + 包体填充长度(2) + 类型(4) + 包体(len([]byte))
-			if bufLen >= 10 {
+			// 包长(4) + 类型(4) + 包体(len([]byte))
+			if bufLen >= 8 {
 				pacLen := convert.BytesToUint32(buf[0:4])
-				pacPadLen := convert.BytesToUint16(buf[4:6])
 				if bufLen >= pacLen {
 					receivePackets <- &packet.Packet{
-						Len:    pacLen,
-						PadLen: pacPadLen,
-						Type:   convert.BytesToUint32(buf[6:10]),
-						Data:   buf[10:pacLen],
+						Len:  pacLen,
+						Type: convert.BytesToUint32(buf[4:8]),
+						Data: buf[8:pacLen],
 					}
 					bufLen -= pacLen
 					buf = buf[:bufLen]

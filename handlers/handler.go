@@ -55,8 +55,8 @@ func SendByteStream(conn *net.TCPConn, buf []byte) error {
 	return nil
 }
 
-// 发送Packet
-func SendPacket(conn *net.TCPConn, dataType uint32, pb interface{}) error {
+// 发送protobuf结构数据
+func SendPbData(conn *net.TCPConn, dataType uint32, pb interface{}) error {
 	pac, err := packet.Pack(dataType, pb)
 	if err != nil {
 		return err
@@ -87,9 +87,9 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 		CloseConn(conn)
 	}
 
-	fmt.Println("uuid:", readMsg.GetUuid())
-	fmt.Println("version:", readMsg.GetVersion())
-	fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
+	// fmt.Println("uuid:", readMsg.GetUuid())
+	// fmt.Println("version:", readMsg.GetVersion())
+	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
 
 	// write
 	writeMsg := &pb.PbServerAcceptLogin{
@@ -97,7 +97,7 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 		TipsMsg:   proto.String("登陆成功"),
 		Timestamp: proto.Int64(time.Now().Unix()),
 	}
-	SendPacket(conn, packet.PK_ServerAcceptLogin, writeMsg)
+	SendPbData(conn, packet.PK_ServerAcceptLogin, writeMsg)
 
 	// 检查是否有该uuid的离线消息存在，若有，则发送其离线消息
 	if dao.OfflineMsgCheck(uuid) {
@@ -153,7 +153,6 @@ func HandleClientPing(conn *net.TCPConn, recPacket *packet.Packet) {
 
 // 处理客户端之间的消息转发
 func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
-	// fmt.Println("处理消息转发")
 	// read
 	readMsg := &pb.PbC2CTextChat{}
 	packet.Unpack(recPacket, readMsg)
@@ -181,8 +180,7 @@ func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
 		log.Printf("%v\r\n", err)
 		return
 	}
-	// fmt.Println("from_uuid:", from_uuid, "to_uuid:", to_uuid)
-	// fmt.Println("判断是否离线")
+
 	// 若 to_uuid 在线，则转发该消息，发送失败 或者 to_uuid不在线 则保存为离线消息
 	if dao.UuidCheckOnline(to_uuid) {
 		// fmt.Println("在线消息转发")

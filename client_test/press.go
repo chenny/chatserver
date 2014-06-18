@@ -37,7 +37,7 @@ func ping(conn *net.TCPConn) {
 			Ping:      proto.Bool(true),
 			Timestamp: proto.Int64(time.Now().Unix()),
 		}
-		err := handlers.SendPacket(conn, packet.PK_ClientPing, writePingMsg)
+		err := handlers.SendPbData(conn, packet.PK_ClientPing, writePingMsg)
 		if err != nil {
 			return
 		}
@@ -71,6 +71,9 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 				for i := 0; i < 10; i++ {
 					rand.Seed(time.Now().UnixNano())
 					to_uuid := rand.Intn(total) + 1 // [1, total]
+					if to_uuid == uuid {
+						continue
+					}
 
 					writeMsg := &pb.PbC2CTextChat{
 						FromUuid:  proto.String(getUuid(uuid)),
@@ -78,7 +81,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 						TextMsg:   proto.String("hello,世界！！！"),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
-					handlers.SendPacket(conn, packet.PK_C2CTextChat, writeMsg)
+					handlers.SendPbData(conn, packet.PK_C2CTextChat, writeMsg)
 				}
 
 			} else if p.Type == packet.PK_C2CTextChat { // 普通消息
@@ -97,6 +100,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					// write, 回复时在原基础上加点消息，控制长度范围
 					var to_txt_msg string
 					var add_txt string = " 你好 hello world"
+
 					if len(txt_msg)+len(add_txt) <= 2048 {
 						to_txt_msg = txt_msg + add_txt
 					} else {
@@ -109,7 +113,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 						TextMsg:   proto.String(to_txt_msg),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
-					handlers.SendPacket(conn, packet.PK_C2CTextChat, writeMsg)
+					handlers.SendPbData(conn, packet.PK_C2CTextChat, writeMsg)
 				}
 
 			} else {
@@ -141,7 +145,7 @@ func testClient(uuid int) {
 		Version:   proto.Float32(3.14),
 		Timestamp: proto.Int64(time.Now().Unix()),
 	}
-	err = handlers.SendPacket(conn, packet.PK_ClientLogin, writeLoginMsg)
+	err = handlers.SendPbData(conn, packet.PK_ClientLogin, writeLoginMsg)
 	if err != nil {
 		log.Printf("[%v] 发送登陆包失败: %v\r\n", getUuid(uuid), err)
 		return
@@ -174,16 +178,14 @@ func testClient(uuid int) {
 			buf = append(buf, request[:readSize]...)
 			bufLen += uint32(readSize)
 
-			// 包长(4) + 包体填充长度(2) + 类型(4) + 包体(len([]byte))
-			if bufLen >= 10 {
+			// 包长(4) + 类型(4) + 包体(len([]byte))
+			if bufLen >= 8 {
 				pacLen := convert.BytesToUint32(buf[0:4])
-				pacPadLen := convert.BytesToUint16(buf[4:6])
 				if bufLen >= pacLen {
 					receivePackets <- &packet.Packet{
-						Len:    pacLen,
-						PadLen: pacPadLen,
-						Type:   convert.BytesToUint32(buf[6:10]),
-						Data:   buf[10:pacLen],
+						Len:  pacLen,
+						Type: convert.BytesToUint32(buf[4:8]),
+						Data: buf[8:pacLen],
 					}
 					bufLen -= pacLen
 					buf = buf[:bufLen]
