@@ -18,16 +18,16 @@ import (
 
 //  包体：字节数组，[]byte
 
-// 包长和类型明文，对包体用protobuf序列化，然后进行AES加密。
+//  包长和类型用明文传输，包体由结构体采用protobuf序列化后再进行AES加密得到。
 // --------------------------------------------------------------------------
 
 // 数据包的类型
 const (
-	PK_ClientLogin = uint32(iota)
-	PK_ServerAcceptLogin
-	PK_ClientLogout
-	PK_ClientPing
-	PK_C2CTextChat
+	PK_ClientLogin       = uint32(1)
+	PK_ServerAcceptLogin = uint32(2)
+	PK_ClientLogout      = uint32(3)
+	PK_ClientPing        = uint32(4)
+	PK_C2CTextChat       = uint32(5)
 )
 
 type Packet struct {

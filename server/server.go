@@ -166,19 +166,24 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 			bufLen += uint32(readSize)
 
 			// 包长(4) + 类型(4) + 包体(len([]byte))
-			if bufLen >= 8 {
-				pacLen := convert.BytesToUint32(buf[0:4])
-				if bufLen >= pacLen {
-					receivePackets <- &packet.Packet{
-						Len:  pacLen,
-						Type: convert.BytesToUint32(buf[4:8]),
-						Data: buf[8:pacLen],
+			for {
+				if bufLen >= 8 {
+					pacLen := convert.BytesToUint32(buf[0:4])
+					if bufLen >= pacLen {
+						receivePackets <- &packet.Packet{
+							Len:  pacLen,
+							Type: convert.BytesToUint32(buf[4:8]),
+							Data: buf[8:pacLen],
+						}
+						buf = buf[pacLen:]
+						bufLen -= pacLen
+					} else {
+						break
 					}
-					bufLen -= pacLen
-					buf = buf[:bufLen]
+				} else {
+					break
 				}
 			}
-
 		}
 
 	}
