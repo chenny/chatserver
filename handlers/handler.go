@@ -7,6 +7,7 @@ import (
 	"github.com/gansidui/chatserver/dao"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
+	"github.com/gansidui/chatserver/report"
 	"github.com/gansidui/chatserver/utils/convert"
 	"github.com/gansidui/chatserver/utils/safemap"
 	"log"
@@ -35,6 +36,7 @@ func CloseConn(conn *net.TCPConn) {
 	if uuid != nil {
 		dao.UuidOffLine(uuid.(string))
 	}
+	report.AddCount(report.OnlineUser, -1)
 }
 
 // 初始化conn
@@ -43,6 +45,7 @@ func InitConn(conn *net.TCPConn, uuid string) {
 	UuidMapConn.Set(uuid, conn)
 	ConnMapUuid.Set(conn, uuid)
 	dao.UuidOnLine(uuid)
+	report.AddCount(report.OnlineUser, 1)
 }
 
 // 发送字节流
@@ -188,9 +191,13 @@ func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
 		if SendByteStream(to_conn, pac.GetBytes()) != nil {
 			// fmt.Println("发送失败转离线消息保存")
 			dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
+			report.AddCount(report.OfflineMsg, 1)
+		} else {
+			report.AddCount(report.OnlineMsg, 1)
 		}
 	} else {
 		// fmt.Println("不在线转离线消息保存")
 		dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
+		report.AddCount(report.OfflineMsg, 1)
 	}
 }

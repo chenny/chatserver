@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gansidui/chatserver/handlers"
 	"github.com/gansidui/chatserver/packet"
+	"github.com/gansidui/chatserver/report"
 	"github.com/gansidui/chatserver/utils/convert"
 	"github.com/gansidui/chatserver/utils/funcmap"
 	"log"
@@ -55,6 +56,9 @@ func (this *Server) Start(listener *net.TCPListener) {
 	// 防止恶意连接
 	go this.dealSpamConn()
 
+	// report记录，定时发送邮件
+	go report.Work()
+
 	for {
 		select {
 		case <-this.exitCh:
@@ -65,14 +69,18 @@ func (this *Server) Start(listener *net.TCPListener) {
 
 		listener.SetDeadline(time.Now().Add(this.acceptTimeout))
 		conn, err := listener.AcceptTCP()
+
 		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 				// log.Printf("Accept timeout: %v\r\n", opErr)
 				continue
 			}
+			report.AddCount(report.TryConnect, 1)
 			log.Printf("Accept error: %v\r\n", err)
 			continue
 		}
+
+		report.AddCount(report.SuccessConnect, 1)
 
 		// 连接后等待登陆验证
 		handlers.ConnMapLoginStatus.Set(conn, time.Now())

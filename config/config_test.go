@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -21,4 +22,17 @@ func TestConfig(t *testing.T) {
 	fmt.Printf("%q\n", IdToMsgDB)
 	fmt.Printf("%v\n", TimedUpdateDB)
 	fmt.Printf("%q\n", LogFile)
+	fmt.Printf("%q\n", EmailServerAddr)
+	fmt.Printf("%q\n", EmailServerPort)
+	fmt.Printf("%q\n", EmailAccount)
+	fmt.Printf("%q\n", EmailPassword)
+	fmt.Printf("%v\n", EmailDuration)
+	fmt.Printf("%q\n", EmailToList)
+
+	s := strings.Split(EmailToList, " ")
+	for _, v := range s {
+		if v != "" {
+			fmt.Printf("%q\n", v)
+		}
+	}
 }

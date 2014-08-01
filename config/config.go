@@ -16,6 +16,12 @@ var (
 	IdToMsgDB       string
 	TimedUpdateDB   int
 	LogFile         string
+	EmailServerAddr string
+	EmailServerPort string
+	EmailAccount    string
+	EmailPassword   string
+	EmailToList     string
+	EmailDuration   int
 )
 
 func ReadIniFile(inifile string) error {
@@ -36,6 +42,13 @@ func ReadIniFile(inifile string) error {
 	TimedUpdateDB, _ = conf.Int("data", "timed_update_db")
 
 	LogFile, _ = conf.String("debug", "logfile")
+
+	EmailServerAddr, _ = conf.String("email", "email_server_addr")
+	EmailServerPort, _ = conf.String("email", "email_server_port")
+	EmailAccount, _ = conf.String("email", "email_account")
+	EmailPassword, _ = conf.String("email", "email_password")
+	EmailToList, _ = conf.String("email", "email_tolist")
+	EmailDuration, _ = conf.Int("email", "email_duration")
 
 	return nil
 }
