@@ -20,6 +20,7 @@ type Server struct {
 	acceptTimeout time.Duration    // 连接超时时间
 	readTimeout   time.Duration    // 读超时时间,其实也就是心跳维持时间
 	writeTimeout  time.Duration    // 写超时时间
+	reqMemPool    *sync.Pool       // 为每个conn分配一个固定的接收缓存
 }
 
 func NewServer() *Server {
@@ -30,6 +31,11 @@ func NewServer() *Server {
 		acceptTimeout: 30,
 		readTimeout:   60,
 		writeTimeout:  60,
+		reqMemPool: &sync.Pool{
+			New: func() interface{} {
+				return make([]byte, 1024)
+			},
+		},
 	}
 }
 
@@ -150,7 +156,10 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 
 	// 接收数据
 	log.Printf("HandleClient: %v\r\n", addr)
-	request := make([]byte, 1024)
+
+	request := this.reqMemPool.Get().([]byte)
+	defer this.reqMemPool.Put(request)
+
 	buf := make([]byte, 0)
 	var bufLen uint32 = 0
 
