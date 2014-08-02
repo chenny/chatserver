@@ -33,6 +33,13 @@ func TestConvert(t *testing.T) {
 		t.Error("convert error")
 	}
 
+	var e int32 = 98765
+	bytes3 := Int32ToBytes(e)
+	var f int32 = BytesToInt32(bytes3)
+	if e != f {
+		t.Error("convert error")
+	}
+
 	tt := time.Now()
 	timestamp := tt.Unix()
 	fmt.Println(TimestampToTimeString(timestamp))

@@ -19,7 +19,23 @@ func Uint32ToBytes(v uint32) []byte {
 	return buf
 }
 
+func Int32ToBytes(v int32) []byte {
+	buf := make([]byte, 4)
+	buf[0] = byte(v >> 24)
+	buf[1] = byte(v >> 16)
+	buf[2] = byte(v >> 8)
+	buf[3] = byte(v)
+	return buf
+}
+
 func Uint16ToBytes(v uint16) []byte {
+	buf := make([]byte, 2)
+	buf[0] = byte(v >> 8)
+	buf[1] = byte(v)
+	return buf
+}
+
+func Int16ToBytes(v int16) []byte {
 	buf := make([]byte, 2)
 	buf[0] = byte(v >> 8)
 	buf[1] = byte(v)
@@ -31,8 +47,18 @@ func BytesToUint32(buf []byte) uint32 {
 	return v
 }
 
+func BytesToInt32(buf []byte) int32 {
+	v := (int32(buf[0])<<24 | int32(buf[1])<<16 | int32(buf[2])<<8 | int32(buf[3]))
+	return v
+}
+
 func BytesToUint16(buf []byte) uint16 {
 	v := (uint16(buf[0])<<8 | uint16(buf[1]))
+	return v
+}
+
+func BytesToInt16(buf []byte) int16 {
+	v := (int16(buf[0])<<8 | int16(buf[1]))
 	return v
 }
 
