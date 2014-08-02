@@ -9,12 +9,14 @@ import (
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
+	"github.com/gansidui/code/ringbuffer"
 	"log"
 	"math/rand"
 	"net"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -78,7 +80,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					writeMsg := &pb.PbC2CTextChat{
 						FromUuid:  proto.String(getUuid(uuid)),
 						ToUuid:    proto.String(getUuid(to_uuid)),
-						TextMsg:   proto.String("hello,世界！！！"),
+						TextMsg:   proto.String(strings.Repeat("hello,世界！！！", 100)),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
 					handlers.SendPbData(conn, packet.PK_C2CTextChat, writeMsg)
@@ -155,8 +157,7 @@ func testClient(uuid int) {
 	receivePackets := make(chan *packet.Packet, 20) // 接收到的包
 	chStop := make(chan bool)                       // 通知停止消息处理
 	request := make([]byte, 1024)
-	buf := make([]byte, 0)
-	var bufLen uint32 = 0
+	rbuf := ringbuffer.NewRingBuffer(1024)
 
 	defer func() {
 		conn.Close()
@@ -174,24 +175,28 @@ func testClient(uuid int) {
 		if err != nil {
 			return
 		}
+
 		if readSize > 0 {
-			buf = append(buf, request[:readSize]...)
-			bufLen += uint32(readSize)
+			rbuf.Write(request[:readSize])
 
 			// 包长(4) + 类型(4) + 包体(len([]byte))
-			if bufLen >= 8 {
-				pacLen := convert.BytesToUint32(buf[0:4])
-				if bufLen >= pacLen {
-					receivePackets <- &packet.Packet{
-						Len:  pacLen,
-						Type: convert.BytesToUint32(buf[4:8]),
-						Data: buf[8:pacLen],
+			for {
+				if rbuf.Len() >= 8 {
+					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
+					if rbuf.Len() >= int(pacLen) {
+						rbuf.Peek(4)
+						receivePackets <- &packet.Packet{
+							Len:  pacLen,
+							Type: convert.BytesToUint32(rbuf.Read(4)),
+							Data: rbuf.Read(int(pacLen) - 8),
+						}
+					} else {
+						break
 					}
-					bufLen -= pacLen
-					buf = buf[:bufLen]
+				} else {
+					break
 				}
 			}
-
 		}
 	}
 }
