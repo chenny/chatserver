@@ -7,6 +7,7 @@ import (
 	"github.com/gansidui/chatserver/report"
 	"github.com/gansidui/chatserver/utils/convert"
 	"github.com/gansidui/chatserver/utils/funcmap"
+	"github.com/gansidui/code/ringbuffer"
 	"log"
 	"net"
 	"sync"
@@ -21,6 +22,7 @@ type Server struct {
 	readTimeout   time.Duration    // 读超时时间,其实也就是心跳维持时间
 	writeTimeout  time.Duration    // 写超时时间
 	reqMemPool    *sync.Pool       // 为每个conn分配一个固定的接收缓存
+	rbufMemPool   *sync.Pool       // 为每个conn分配一个环形缓冲区
 }
 
 func NewServer() *Server {
@@ -34,6 +36,11 @@ func NewServer() *Server {
 		reqMemPool: &sync.Pool{
 			New: func() interface{} {
 				return make([]byte, 1024)
+			},
+		},
+		rbufMemPool: &sync.Pool{
+			New: func() interface{} {
+				return ringbuffer.NewRingBuffer(1024)
 			},
 		},
 	}
@@ -160,8 +167,8 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 	request := this.reqMemPool.Get().([]byte)
 	defer this.reqMemPool.Put(request)
 
-	buf := make([]byte, 0)
-	var bufLen uint32 = 0
+	rbuf := this.rbufMemPool.Get().(*ringbuffer.RingBuffer)
+	defer this.rbufMemPool.Put(rbuf)
 
 	for {
 		select {
@@ -179,21 +186,19 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 		}
 
 		if readSize > 0 {
-			buf = append(buf, request[:readSize]...)
-			bufLen += uint32(readSize)
+			rbuf.Write(request[:readSize])
 
 			// 包长(4) + 类型(4) + 包体(len([]byte))
 			for {
-				if bufLen >= 8 {
-					pacLen := convert.BytesToUint32(buf[0:4])
-					if bufLen >= pacLen {
+				if rbuf.Len() >= 8 {
+					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
+					if rbuf.Len() >= int(pacLen) {
+						rbuf.Peek(4)
 						receivePackets <- &packet.Packet{
 							Len:  pacLen,
-							Type: convert.BytesToUint32(buf[4:8]),
-							Data: buf[8:pacLen],
+							Type: convert.BytesToUint32(rbuf.Read(4)),
+							Data: rbuf.Read(int(pacLen) - 8),
 						}
-						buf = buf[pacLen:]
-						bufLen -= pacLen
 					} else {
 						break
 					}
