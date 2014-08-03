@@ -181,9 +181,9 @@ func testClient(uuid int) {
 
 			// 包长(4) + 类型(4) + 包体(len([]byte))
 			for {
-				if rbuf.Len() >= 8 {
+				if rbuf.Size() >= 8 {
 					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
-					if rbuf.Len() >= int(pacLen) {
+					if rbuf.Size() >= int(pacLen) {
 						rbuf.Peek(4)
 						receivePackets <- &packet.Packet{
 							Len:  pacLen,

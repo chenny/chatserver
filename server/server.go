@@ -179,6 +179,7 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 		}
 
 		conn.SetReadDeadline(time.Now().Add(this.readTimeout))
+
 		readSize, err := conn.Read(request)
 		if err != nil {
 			log.Printf("Read failed: %v\r\n", err)
@@ -190,9 +191,9 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 
 			// 包长(4) + 类型(4) + 包体(len([]byte))
 			for {
-				if rbuf.Len() >= 8 {
+				if rbuf.Size() >= 8 {
 					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
-					if rbuf.Len() >= int(pacLen) {
+					if rbuf.Size() >= int(pacLen) {
 						rbuf.Peek(4)
 						receivePackets <- &packet.Packet{
 							Len:  pacLen,
