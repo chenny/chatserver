@@ -84,11 +84,11 @@ func (this *Server) Start(listener *net.TCPListener) {
 		conn, err := listener.AcceptTCP()
 
 		if err != nil {
+			report.AddCount(report.TryConnect, 1)
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 				// log.Printf("Accept timeout: %v\r\n", opErr)
 				continue
 			}
-			report.AddCount(report.TryConnect, 1)
 			log.Printf("Accept error: %v\r\n", err)
 			continue
 		}

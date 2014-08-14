@@ -67,7 +67,7 @@ func sendEmail(startTime, endTime string) {
 	// 生成邮件正文
 	lock.RLock()
 	duration := fmt.Sprintf("\n<h2>统计时间区间: [%v ---- %v]</h2>\n", startTime, endTime)
-	conCount := fmt.Sprintf("\n<h2>客户端总共发起了 %v 次连接请求, 服务器接受 %v 次</h2>\n", mpCount[TryConnect], mpCount[SuccessConnect])
+	conCount := fmt.Sprintf("\n<h2>接受连接请求: %v 次成功, %v 次失败</h2>\n", mpCount[SuccessConnect], mpCount[TryConnect])
 	msgCount := fmt.Sprintf("\n<h2>在线消息数: %v, 离线消息数: %v</h2>\n", mpCount[OnlineMsg], mpCount[OfflineMsg])
 	userCount := fmt.Sprintf("\n<h2>最高在线人数: %v</h2>\n", maxOnlineUser)
 	lock.RUnlock()
