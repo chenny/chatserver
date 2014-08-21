@@ -9,7 +9,7 @@ import (
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
-	"github.com/gansidui/code/ringbuffer"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -80,7 +80,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					writeMsg := &pb.PbC2CTextChat{
 						FromUuid:  proto.String(getUuid(uuid)),
 						ToUuid:    proto.String(getUuid(to_uuid)),
-						TextMsg:   proto.String(strings.Repeat("hello,世界！！！", 100)),
+						TextMsg:   proto.String(strings.Repeat("hello,世界！！！", 5)),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
 					handlers.SendPbData(conn, packet.PK_C2CTextChat, writeMsg)
@@ -103,7 +103,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					var to_txt_msg string
 					var add_txt string = " 你好 hello world"
 
-					if len(txt_msg)+len(add_txt) <= 2048 {
+					if len(txt_msg)+len(add_txt) <= 1024 {
 						to_txt_msg = txt_msg + add_txt
 					} else {
 						to_txt_msg = txt_msg
@@ -154,10 +154,8 @@ func testClient(uuid int) {
 	}
 
 	// 下面这些处理和server.go中的一样
-	receivePackets := make(chan *packet.Packet, 20) // 接收到的包
-	chStop := make(chan bool)                       // 通知停止消息处理
-	request := make([]byte, 1024)
-	rbuf := ringbuffer.NewRingBuffer(1024)
+	receivePackets := make(chan *packet.Packet, 100) // 接收到的包
+	chStop := make(chan bool)                        // 通知停止消息处理
 
 	defer func() {
 		conn.Close()
@@ -170,33 +168,37 @@ func testClient(uuid int) {
 	// 处理接受到的包
 	go handlePackets(uuid, conn, receivePackets, chStop)
 
+	// 包长(4) + 类型(4) + 包体(len(pacData))
+	var (
+		bLen   []byte = make([]byte, 4)
+		bType  []byte = make([]byte, 4)
+		pacLen uint32
+	)
+
 	for {
-		readSize, err := conn.Read(request)
-		if err != nil {
+		if n, err := io.ReadFull(conn, bLen); err != nil && n != 4 {
+			log.Printf("Read pacLen failed: %v\r\n", err)
+			return
+		}
+		if n, err := io.ReadFull(conn, bType); err != nil && n != 4 {
+			log.Printf("Read pacType failed: %v\r\n", err)
+			return
+		}
+		if pacLen = convert.BytesToUint32(bLen); pacLen > uint32(2048) {
+			log.Printf("pacLen larger than maxPacLen\r\n")
 			return
 		}
 
-		if readSize > 0 {
-			rbuf.Write(request[:readSize])
+		pacData := make([]byte, pacLen-8)
+		if n, err := io.ReadFull(conn, pacData); err != nil && n != int(pacLen) {
+			log.Printf("Read pacData failed: %v\r\n", err)
+			return
+		}
 
-			// 包长(4) + 类型(4) + 包体(len([]byte))
-			for {
-				if rbuf.Size() >= 8 {
-					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
-					if rbuf.Size() >= int(pacLen) {
-						rbuf.Peek(4)
-						receivePackets <- &packet.Packet{
-							Len:  pacLen,
-							Type: convert.BytesToUint32(rbuf.Read(4)),
-							Data: rbuf.Read(int(pacLen) - 8),
-						}
-					} else {
-						break
-					}
-				} else {
-					break
-				}
-			}
+		receivePackets <- &packet.Packet{
+			Len:  pacLen,
+			Type: convert.BytesToUint32(bType),
+			Data: pacData,
 		}
 	}
 }

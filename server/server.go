@@ -7,7 +7,7 @@ import (
 	"github.com/gansidui/chatserver/report"
 	"github.com/gansidui/chatserver/utils/convert"
 	"github.com/gansidui/chatserver/utils/funcmap"
-	"github.com/gansidui/code/ringbuffer"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -21,8 +21,7 @@ type Server struct {
 	acceptTimeout time.Duration    // 连接超时时间
 	readTimeout   time.Duration    // 读超时时间,其实也就是心跳维持时间
 	writeTimeout  time.Duration    // 写超时时间
-	reqMemPool    *sync.Pool       // 为每个conn分配一个固定的接收缓存
-	rbufMemPool   *sync.Pool       // 为每个conn分配一个环形缓冲区
+	maxPacLen     uint32           // 包长限制
 }
 
 func NewServer() *Server {
@@ -30,19 +29,10 @@ func NewServer() *Server {
 		exitCh:        make(chan bool),
 		waitGroup:     &sync.WaitGroup{},
 		funcMap:       funcmap.NewFuncMap(),
-		acceptTimeout: 30,
+		acceptTimeout: 60,
 		readTimeout:   60,
 		writeTimeout:  60,
-		reqMemPool: &sync.Pool{
-			New: func() interface{} {
-				return make([]byte, 1024)
-			},
-		},
-		rbufMemPool: &sync.Pool{
-			New: func() interface{} {
-				return ringbuffer.NewRingBuffer(1024)
-			},
-		},
+		maxPacLen:     2048,
 	}
 }
 
@@ -56,6 +46,10 @@ func (this *Server) SetReadTimeout(readTimeout time.Duration) {
 
 func (this *Server) SetWriteTimeout(writeTimeout time.Duration) {
 	this.writeTimeout = writeTimeout
+}
+
+func (this *Server) SetMaxPacLen(maxPacLen uint32) {
+	this.maxPacLen = maxPacLen
 }
 
 func (this *Server) Start(listener *net.TCPListener) {
@@ -86,7 +80,6 @@ func (this *Server) Start(listener *net.TCPListener) {
 		if err != nil {
 			report.AddCount(report.TryConnect, 1)
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
-				// log.Printf("Accept timeout: %v\r\n", opErr)
 				continue
 			}
 			log.Printf("Accept error: %v\r\n", err)
@@ -141,8 +134,8 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 	this.waitGroup.Add(1)
 	defer this.waitGroup.Done()
 
-	receivePackets := make(chan *packet.Packet, 20) // 接收到的包
-	chStop := make(chan bool)                       // 通知停止消息处理
+	receivePackets := make(chan *packet.Packet, 100) // 接收到的包
+	chStop := make(chan bool)                        // 通知停止消息处理
 	addr := conn.RemoteAddr().String()
 
 	defer func() {
@@ -164,11 +157,12 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 	// 接收数据
 	log.Printf("HandleClient: %v\r\n", addr)
 
-	request := this.reqMemPool.Get().([]byte)
-	defer this.reqMemPool.Put(request)
-
-	rbuf := this.rbufMemPool.Get().(*ringbuffer.RingBuffer)
-	defer this.rbufMemPool.Put(rbuf)
+	// 包长(4) + 类型(4) + 包体(len(pacData))
+	var (
+		bLen   []byte = make([]byte, 4)
+		bType  []byte = make([]byte, 4)
+		pacLen uint32
+	)
 
 	for {
 		select {
@@ -180,35 +174,30 @@ func (this *Server) handleClientConn(conn *net.TCPConn) {
 
 		conn.SetReadDeadline(time.Now().Add(this.readTimeout))
 
-		readSize, err := conn.Read(request)
-		if err != nil {
-			log.Printf("Read failed: %v\r\n", err)
+		if n, err := io.ReadFull(conn, bLen); err != nil && n != 4 {
+			log.Printf("Read pacLen failed: %v\r\n", err)
+			return
+		}
+		if n, err := io.ReadFull(conn, bType); err != nil && n != 4 {
+			log.Printf("Read pacType failed: %v\r\n", err)
+			return
+		}
+		if pacLen = convert.BytesToUint32(bLen); pacLen > this.maxPacLen {
+			log.Printf("pacLen larger than maxPacLen\r\n")
 			return
 		}
 
-		if readSize > 0 {
-			rbuf.Write(request[:readSize])
-
-			// 包长(4) + 类型(4) + 包体(len([]byte))
-			for {
-				if rbuf.Size() >= 8 {
-					pacLen := convert.BytesToUint32(rbuf.Bytes(4))
-					if rbuf.Size() >= int(pacLen) {
-						rbuf.Peek(4)
-						receivePackets <- &packet.Packet{
-							Len:  pacLen,
-							Type: convert.BytesToUint32(rbuf.Read(4)),
-							Data: rbuf.Read(int(pacLen) - 8),
-						}
-					} else {
-						break
-					}
-				} else {
-					break
-				}
-			}
+		pacData := make([]byte, pacLen-8)
+		if n, err := io.ReadFull(conn, pacData); err != nil && n != int(pacLen) {
+			log.Printf("Read pacData failed: %v\r\n", err)
+			return
 		}
 
+		receivePackets <- &packet.Packet{
+			Len:  pacLen,
+			Type: convert.BytesToUint32(bType),
+			Data: pacData,
+		}
 	}
 }
 
