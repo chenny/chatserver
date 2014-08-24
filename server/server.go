@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -115,8 +116,8 @@ func (this *Server) dealSpamConn() {
 			}
 		}
 
-		// 输出当前的连接数
 		fmt.Println("当前连接数: ", handlers.ConnMapUuid.Size())
+		fmt.Println("当前goroutine数: ", runtime.NumGoroutine())
 	}
 }
 

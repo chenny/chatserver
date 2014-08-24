@@ -9,6 +9,7 @@ import (
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -19,25 +20,6 @@ var (
 	i_uuid string
 	u_uuid string
 )
-
-func getPacFromBuf(buf []byte, n int) *packet.Packet {
-	pacLen := convert.BytesToUint32(buf[0:4])
-	pac := &packet.Packet{
-		Len:  pacLen,
-		Type: convert.BytesToUint32(buf[4:8]),
-		Data: buf[8:pacLen],
-	}
-
-	if n != int(pacLen) {
-		fmt.Println("Len:", pac.Len)
-		fmt.Println("Type:", pac.Type)
-		fmt.Println("Data:", pac.Data)
-		fmt.Println("数据不完整")
-		return nil
-	}
-
-	return pac
-}
 
 // 发送心跳包
 func ping(conn *net.TCPConn) {
@@ -77,14 +59,37 @@ func testBB(i_uuid string) {
 		log.Printf("%v 发送登陆包失败: %v\r\n", i_uuid, err)
 		return
 	}
+
+	var (
+		bLen   []byte = make([]byte, 4)
+		bType  []byte = make([]byte, 4)
+		pacLen uint32
+	)
+
 	// read
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		log.Printf("%v 登陆回应包读取失败: %v\r\n", i_uuid, err)
+	if n, err := io.ReadFull(conn, bLen); err != nil && n != 4 {
+		log.Printf("Read pacLen failed: %v\r\n", err)
 		return
 	}
-	pac := getPacFromBuf(buf, n)
+	if n, err := io.ReadFull(conn, bType); err != nil && n != 4 {
+		log.Printf("Read pacType failed: %v\r\n", err)
+		return
+	}
+	if pacLen = convert.BytesToUint32(bLen); pacLen > uint32(2048) {
+		log.Printf("pacLen larger than maxPacLen\r\n")
+		return
+	}
+	pacData := make([]byte, pacLen-8)
+	if n, err := io.ReadFull(conn, pacData); err != nil && n != int(pacLen) {
+		log.Printf("Read pacData failed: %v\r\n", err)
+		return
+	}
+	pac := &packet.Packet{
+		Len:  pacLen,
+		Type: convert.BytesToUint32(bType),
+		Data: pacData,
+	}
+
 	readAccepLoginMsg := &pb.PbServerAcceptLogin{}
 	err = packet.Unpack(pac, readAccepLoginMsg)
 	if err != nil {
@@ -115,17 +120,31 @@ func testBB(i_uuid string) {
 	}()
 
 	// 死循环，接收消息和发送消息
-	recBuf := make([]byte, 1024)
 	for {
 		fmt.Println("坐等消息到来...")
 		// read
-		n, err := conn.Read(recBuf)
-		if err != nil {
-			log.Printf("%v 读取消息失败: %v\r\n", i_uuid, err)
+		if n, err := io.ReadFull(conn, bLen); err != nil && n != 4 {
+			log.Printf("Read pacLen failed: %v\r\n", err)
 			return
 		}
-		fmt.Println("消息读取完毕")
-		pac := getPacFromBuf(recBuf, n)
+		if n, err := io.ReadFull(conn, bType); err != nil && n != 4 {
+			log.Printf("Read pacType failed: %v\r\n", err)
+			return
+		}
+		if pacLen = convert.BytesToUint32(bLen); pacLen > uint32(2048) {
+			log.Printf("pacLen larger than maxPacLen\r\n")
+			return
+		}
+		pacData := make([]byte, pacLen-8)
+		if n, err := io.ReadFull(conn, pacData); err != nil && n != int(pacLen) {
+			log.Printf("Read pacData failed: %v\r\n", err)
+			return
+		}
+		pac := &packet.Packet{
+			Len:  pacLen,
+			Type: convert.BytesToUint32(bType),
+			Data: pacData,
+		}
 		readC2CMsg := &pb.PbC2CTextChat{}
 		err = packet.Unpack(pac, readC2CMsg)
 		if err != nil {

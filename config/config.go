@@ -11,10 +11,6 @@ var (
 	AcceptTimeout   int
 	ReadTimeout     int
 	WriteTimeout    int
-	UuidDB          string
-	OfflineMsgidsDB string
-	IdToMsgDB       string
-	TimedUpdateDB   int
 	LogFile         string
 	EmailServerAddr string
 	EmailServerPort string
@@ -35,11 +31,6 @@ func ReadIniFile(inifile string) error {
 	AcceptTimeout, _ = conf.Int("service", "accept_timeout")
 	ReadTimeout, _ = conf.Int("service", "read_timeout")
 	WriteTimeout, _ = conf.Int("service", "write_timeout")
-
-	UuidDB, _ = conf.String("data", "uuid_db")
-	OfflineMsgidsDB, _ = conf.String("data", "offline_msgids_db")
-	IdToMsgDB, _ = conf.String("data", "id_to_msg_db")
-	TimedUpdateDB, _ = conf.Int("data", "timed_update_db")
 
 	LogFile, _ = conf.String("debug", "logfile")
 

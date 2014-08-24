@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao"
+	"github.com/gansidui/chatserver/dao/c2c"
 	"github.com/gansidui/chatserver/handlers"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/server"
@@ -24,12 +24,7 @@ func init() {
 
 	// 设置cpu数量和日志目录
 	runtime.GOMAXPROCS(config.NumCpu)
-	// setLogOutput(config.LogFile)
-
-	// 初始化dao
-	dao.IdMsgInit(config.IdToMsgDB)
-	dao.OfflineMsgInit(config.OfflineMsgidsDB)
-	dao.UuidInit(config.UuidDB)
+	setLogOutput(config.LogFile)
 
 	// 服务器初始化
 	svr = server.NewServer()
@@ -45,9 +40,7 @@ func init() {
 }
 
 func clean() {
-	dao.IdMsgClean()
-	dao.OfflineMsgClean()
-	dao.UuidClean()
+	c2c.Clean()
 }
 
 func main() {

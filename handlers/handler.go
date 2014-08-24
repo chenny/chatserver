@@ -4,7 +4,8 @@ import (
 	proto "code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao"
+	"github.com/gansidui/chatserver/dao/c2c"
+	"github.com/gansidui/chatserver/dao/cid"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/report"
@@ -34,7 +35,7 @@ func CloseConn(conn *net.TCPConn) {
 	UuidMapConn.Delete(uuid)
 	ConnMapUuid.Delete(conn)
 	if uuid != nil {
-		dao.UuidOffLine(uuid.(string))
+		cid.UuidOffLine(uuid.(string))
 	}
 	report.AddCount(report.OnlineUser, -1)
 }
@@ -44,7 +45,7 @@ func InitConn(conn *net.TCPConn, uuid string) {
 	ConnMapLoginStatus.Set(conn, nil)
 	UuidMapConn.Set(uuid, conn)
 	ConnMapUuid.Set(conn, uuid)
-	dao.UuidOnLine(uuid)
+	cid.UuidOnLine(uuid)
 	report.AddCount(report.OnlineUser, 1)
 }
 
@@ -76,9 +77,9 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 	uuid := readMsg.GetUuid()
 
 	// 检测uuid合法性
-	if dao.UuidCheckExist(uuid) {
+	if cid.UuidCheckExist(uuid) {
 		// 如果已经在线则关闭以前的conn
-		if dao.UuidCheckOnline(uuid) {
+		if cid.UuidCheckOnline(uuid) {
 			co := UuidMapConn.Get(uuid)
 			if co != nil {
 				CloseConn(co.(*net.TCPConn))
@@ -103,33 +104,16 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 	SendPbData(conn, packet.PK_ServerAcceptLogin, writeMsg)
 
 	// 检查是否有该uuid的离线消息存在，若有，则发送其离线消息
-	if dao.OfflineMsgCheck(uuid) {
+	if offmsgNum := c2c.GetMsgNum(uuid); offmsgNum > 0 {
 		// 这里比较复杂，后续再优化(可以多个离线消息一起发送)
-		// 得到所有离线消息的id
-		msgids := dao.OfflineMsgGetIds(uuid)
-		// fmt.Println(uuid, "有离线消息，数量为：", len(msgids))
-		var (
-			k   int
-			err error
-		)
-		for k, _ = range msgids {
-			if err = SendByteStream(conn, []byte(dao.IdMsgGetMsgFromId(msgids[k]))); err != nil {
-				break
-			}
-			// fmt.Println("正在发送离线消息", k, err, dao.IdMsgGetMsgFromId(msgids[k]))
+		// 得到所有离线消息
+		// fmt.Println("转发离线消息")
+		msgs := c2c.GetMsgs(uuid, offmsgNum)
+		c2c.DeleteMsgs(uuid, offmsgNum, offmsgNum)
+		for i, _ := range msgs {
+			SendByteStream(conn, []byte(msgs[i]))
 		}
-
-		if err != nil {
-			if k != 0 {
-				dao.OfflineMsgDeleteIds(uuid, msgids[k-1])
-			}
-		} else {
-			dao.OfflineMsgDeleteIds(uuid, msgids[k])
-		}
-	} else {
-		// fmt.Println("没有离线消息")
 	}
-
 }
 
 // 处理下线
@@ -147,8 +131,8 @@ func HandleClientLogout(conn *net.TCPConn, recPacket *packet.Packet) {
 // 处理心跳
 func HandleClientPing(conn *net.TCPConn, recPacket *packet.Packet) {
 	// read
-	readMsg := &pb.PbClientPing{}
-	packet.Unpack(recPacket, readMsg)
+	// readMsg := &pb.PbClientPing{}
+	// packet.Unpack(recPacket, readMsg)
 
 	// fmt.Println("ping:", readMsg.GetPing())
 	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
@@ -166,7 +150,7 @@ func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
 	timestamp := readMsg.GetTimestamp()
 
 	// 验证发送者的真实性以及发送对象是否存，若消息伪造，则断开该连接
-	if readMsg.GetFromUuid() != from_uuid || !dao.UuidCheckExist(to_uuid) {
+	if readMsg.GetFromUuid() != from_uuid || !cid.UuidCheckExist(to_uuid) {
 		CloseConn(conn)
 		return
 	}
@@ -185,19 +169,19 @@ func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
 	}
 
 	// 若 to_uuid 在线，则转发该消息，发送失败 或者 to_uuid不在线 则保存为离线消息
-	if dao.UuidCheckOnline(to_uuid) {
+	if cid.UuidCheckOnline(to_uuid) {
 		// fmt.Println("在线消息转发")
 		to_conn := UuidMapConn.Get(to_uuid).(*net.TCPConn)
 		if SendByteStream(to_conn, pac.GetBytes()) != nil {
 			// fmt.Println("发送失败转离线消息保存")
-			dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
+			c2c.AddMsg(to_uuid, string(pac.GetBytes()))
 			report.AddCount(report.OfflineMsg, 1)
 		} else {
 			report.AddCount(report.OnlineMsg, 1)
 		}
 	} else {
 		// fmt.Println("不在线转离线消息保存")
-		dao.OfflineMsgAddMsg(to_uuid, string(pac.GetBytes()))
+		c2c.AddMsg(to_uuid, string(pac.GetBytes()))
 		report.AddCount(report.OfflineMsg, 1)
 	}
 }
