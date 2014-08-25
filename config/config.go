@@ -6,18 +6,20 @@ import (
 )
 
 var (
-	Addr            string
-	NumCpu          int
-	AcceptTimeout   int
-	ReadTimeout     int
-	WriteTimeout    int
-	LogFile         string
-	EmailServerAddr string
-	EmailServerPort string
-	EmailAccount    string
-	EmailPassword   string
-	EmailToList     string
-	EmailDuration   int
+	Addr                           string
+	NumCpu                         int
+	AcceptTimeout                  int
+	ReadTimeout                    int
+	WriteTimeout                   int
+	C2COfflinemsgRedisAddr         string
+	C2COfflinemsgRedisKeyExpireDay string
+	LogFile                        string
+	EmailServerAddr                string
+	EmailServerPort                string
+	EmailAccount                   string
+	EmailPassword                  string
+	EmailToList                    string
+	EmailDuration                  int
 )
 
 func ReadIniFile(inifile string) error {
@@ -31,6 +33,9 @@ func ReadIniFile(inifile string) error {
 	AcceptTimeout, _ = conf.Int("service", "accept_timeout")
 	ReadTimeout, _ = conf.Int("service", "read_timeout")
 	WriteTimeout, _ = conf.Int("service", "write_timeout")
+
+	C2COfflinemsgRedisAddr, _ = conf.String("redisdb", "c2c_offlinemsg_redisAddr")
+	C2COfflinemsgRedisKeyExpireDay, _ = conf.String("redisdb", "c2c_offlinemsg_redisKeyExpireDay")
 
 	LogFile, _ = conf.String("debug", "logfile")
 

@@ -17,6 +17,8 @@ func TestConfig(t *testing.T) {
 	fmt.Printf("%v\n", AcceptTimeout)
 	fmt.Printf("%v\n", ReadTimeout)
 	fmt.Printf("%v\n", WriteTimeout)
+	fmt.Printf("%v\n", C2COfflinemsgRedisAddr)
+	fmt.Printf("%v\n", C2COfflinemsgRedisKeyExpireDay)
 	fmt.Printf("%q\n", LogFile)
 	fmt.Printf("%q\n", EmailServerAddr)
 	fmt.Printf("%q\n", EmailServerPort)

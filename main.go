@@ -22,9 +22,12 @@ func init() {
 	err := config.ReadIniFile("./config.ini")
 	checkError(err)
 
+	// 初始化redis db 连接
+	c2c.InitRedisDB()
+
 	// 设置cpu数量和日志目录
 	runtime.GOMAXPROCS(config.NumCpu)
-	setLogOutput(config.LogFile)
+	// setLogOutput(config.LogFile)
 
 	// 服务器初始化
 	svr = server.NewServer()

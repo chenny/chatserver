@@ -6,18 +6,19 @@
 package c2c
 
 import (
-	"github.com/gansidui/chatserver/utils/convert"
+	"github.com/gansidui/chatserver/config"
 	"github.com/garyburd/redigo/redis"
-	"sync"
+	"log"
+	"strconv"
 	"sync/atomic"
 	"time"
 )
 
 var (
-	offlinemsg_redisAddr      string        = "127.0.0.1:6381"
-	offlinemsg_redisDBIndex   int32         = 1
-	offlinemsg_redisKeyExpire int32         = 7 * 24 * 3600
-	offlinemsg_lock           *sync.RWMutex = new(sync.RWMutex)
+	offlinemsg_redisAddr         string = "127.0.0.1:6380"
+	offlinemsg_redisDBIndex      int32  = 1
+	offlinemsg_redisKeyExpire    int32  = 7 * 24 * 3600
+	offlinemsg_redisKeyExpireDay int32  = 7
 
 	offlinemsg_writeCon1, offlinemsg_writeCon2, offlinemsg_writeCon3, offlinemsg_writeCon4     redis.Conn
 	offlinemsg_writeMark1, offlinemsg_writeMark2, offlinemsg_writeMark3, offlinemsg_writeMark4 int32 = 0, 0, 0, 0
@@ -29,8 +30,22 @@ var (
 	offlinemsg_readMark1, offlinemsg_readMark2, offlinemsg_readMark3, offlinemsg_readMark4 int32 = 0, 0, 0, 0
 )
 
-func init() {
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func InitRedisDB() {
 	var err error
+
+	offlinemsg_redisAddr = config.C2COfflinemsgRedisAddr
+	dayNum, err := strconv.Atoi(config.C2COfflinemsgRedisKeyExpireDay)
+	checkError(err)
+
+	offlinemsg_redisKeyExpireDay = int32(dayNum)
+	offlinemsg_redisKeyExpire = offlinemsg_redisKeyExpireDay * 24 * 3600
+
 	offlinemsg_writeCon1, err = redis.DialTimeout("tcp", offlinemsg_redisAddr, time.Second, time.Second, time.Second)
 	checkError(err)
 	offlinemsg_writeCon2, err = redis.DialTimeout("tcp", offlinemsg_redisAddr, time.Second, time.Second, time.Second)
@@ -89,14 +104,16 @@ func init() {
 func updateDBIndex() {
 	ticker := time.NewTicker(24 * time.Hour)
 	for _ = range ticker.C {
-		offlinemsg_lock.Lock()
-
-		if atomic.AddInt32(&offlinemsg_redisDBIndex, 1) <= 7 {
+		if atomic.AddInt32(&offlinemsg_redisDBIndex, 1) <= offlinemsg_redisKeyExpireDay {
 			atomic.AddInt32(&offlinemsg_redisKeyExpire, -24*3600)
 		} else {
 			atomic.StoreInt32(&offlinemsg_redisDBIndex, 1)
-			atomic.StoreInt32(&offlinemsg_redisKeyExpire, 7*24*3600)
+			atomic.StoreInt32(&offlinemsg_redisKeyExpire, offlinemsg_redisKeyExpireDay*24*3600)
 		}
+
+		// if atomic.CompareAndSwapInt32(&offlinemsg_writeMark1, 0, 1) {
+		// 	atomic.StoreInt32(&offlinemsg_writeMark1, 0)
+		// }
 
 		offlinemsg_writeCon1.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
 		offlinemsg_writeCon2.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
@@ -112,8 +129,6 @@ func updateDBIndex() {
 		offlinemsg_readCon2.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
 		offlinemsg_readCon3.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
 		offlinemsg_readCon4.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
-
-		offlinemsg_lock.Unlock()
 	}
 }
 
@@ -122,31 +137,27 @@ func Clean() {
 	offlinemsg_writeCon1.Do("SAVE")
 	offlinemsg_delCon1.Do("SAVE")
 	offlinemsg_readCon1.Do("SAVE")
-	id2msgClean()
 }
 
 // 增加uuid的离线消息
 func AddMsg(uuid string, msg string) {
-	msgid := convert.StringToMd5(uuid + msg + time.Now().String())
-	addMsg(msgid, msg)
-
 	if atomic.CompareAndSwapInt32(&offlinemsg_writeMark1, 0, 1) {
-		offlinemsg_writeCon1.Do("RPUSH", uuid, msgid)
+		offlinemsg_writeCon1.Do("RPUSH", uuid, msg)
 		offlinemsg_writeCon1.Do("EXPIRE", uuid, offlinemsg_redisKeyExpire)
 		atomic.StoreInt32(&offlinemsg_writeMark1, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_writeMark2, 0, 1) {
-		offlinemsg_writeCon2.Do("RPUSH", uuid, msgid)
+		offlinemsg_writeCon2.Do("RPUSH", uuid, msg)
 		offlinemsg_writeCon2.Do("EXPIRE", uuid, offlinemsg_redisKeyExpire)
 		atomic.StoreInt32(&offlinemsg_writeMark2, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_writeMark3, 0, 1) {
-		offlinemsg_writeCon3.Do("RPUSH", uuid, msgid)
+		offlinemsg_writeCon3.Do("RPUSH", uuid, msg)
 		offlinemsg_writeCon3.Do("EXPIRE", uuid, offlinemsg_redisKeyExpire)
 		atomic.StoreInt32(&offlinemsg_writeMark3, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_writeMark4, 0, 1) {
-		offlinemsg_writeCon4.Do("RPUSH", uuid, msgid)
+		offlinemsg_writeCon4.Do("RPUSH", uuid, msg)
 		offlinemsg_writeCon4.Do("EXPIRE", uuid, offlinemsg_redisKeyExpire)
 		atomic.StoreInt32(&offlinemsg_writeMark4, 0)
 	}
@@ -158,38 +169,21 @@ func DeleteMsgs(uuid string, n, total int) {
 		return
 	}
 
-	var (
-		msgids []string
-		err    error
-	)
-
 	if atomic.CompareAndSwapInt32(&offlinemsg_delMark1, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_delCon1.Do("LRANGE", uuid, 0, n-1))
 		offlinemsg_delCon1.Do("LTRIM", uuid, n, total-1)
 		atomic.StoreInt32(&offlinemsg_delMark1, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_delMark2, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_delCon2.Do("LRANGE", uuid, 0, n-1))
 		offlinemsg_delCon2.Do("LTRIM", uuid, n, total-1)
 		atomic.StoreInt32(&offlinemsg_delMark2, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_delMark3, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_delCon3.Do("LRANGE", uuid, 0, n-1))
 		offlinemsg_delCon3.Do("LTRIM", uuid, n, total-1)
 		atomic.StoreInt32(&offlinemsg_delMark3, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_delMark4, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_delCon4.Do("LRANGE", uuid, 0, n-1))
 		offlinemsg_delCon4.Do("LTRIM", uuid, n, total-1)
 		atomic.StoreInt32(&offlinemsg_delMark4, 0)
-	}
-
-	if err != nil || len(msgids) == 0 {
-		return
-	}
-
-	for i, _ := range msgids {
-		deleteMsg(msgids[i])
 	}
 }
 
@@ -199,42 +193,28 @@ func GetMsgs(uuid string, n int) (msgs []string) {
 		return
 	}
 
-	var (
-		msgids []string
-		err    error
-	)
-
 	if atomic.CompareAndSwapInt32(&offlinemsg_readMark1, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_readCon1.Do("LRANGE", uuid, 0, n-1))
+		msgs, _ = redis.Strings(offlinemsg_readCon1.Do("LRANGE", uuid, 0, n-1))
 		atomic.StoreInt32(&offlinemsg_readMark1, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_readMark2, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_readCon2.Do("LRANGE", uuid, 0, n-1))
+		msgs, _ = redis.Strings(offlinemsg_readCon2.Do("LRANGE", uuid, 0, n-1))
 		atomic.StoreInt32(&offlinemsg_readMark2, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_readMark3, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_readCon3.Do("LRANGE", uuid, 0, n-1))
+		msgs, _ = redis.Strings(offlinemsg_readCon3.Do("LRANGE", uuid, 0, n-1))
 		atomic.StoreInt32(&offlinemsg_readMark3, 0)
 
 	} else if atomic.CompareAndSwapInt32(&offlinemsg_readMark4, 0, 1) {
-		msgids, err = redis.Strings(offlinemsg_readCon4.Do("LRANGE", uuid, 0, n-1))
+		msgs, _ = redis.Strings(offlinemsg_readCon4.Do("LRANGE", uuid, 0, n-1))
 		atomic.StoreInt32(&offlinemsg_readMark4, 0)
-	}
-
-	if err != nil || len(msgids) == 0 {
-		return
-	}
-
-	for i, _ := range msgids {
-		msgs = append(msgs, getMsg(msgids[i]))
 	}
 	return
 }
 
 // 获取uuid的离线消息数量
 func GetMsgNum(uuid string) int {
-	offlinemsg_lock.RLock()
-	defer offlinemsg_lock.RUnlock()
+
 	var (
 		n   int
 		err error
