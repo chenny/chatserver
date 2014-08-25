@@ -111,10 +111,7 @@ func updateDBIndex() {
 			atomic.StoreInt32(&offlinemsg_redisKeyExpire, offlinemsg_redisKeyExpireDay*24*3600)
 		}
 
-		// if atomic.CompareAndSwapInt32(&offlinemsg_writeMark1, 0, 1) {
-		// 	atomic.StoreInt32(&offlinemsg_writeMark1, 0)
-		// }
-
+		// TODO: 需要将下面12条语句改为原子性操作
 		offlinemsg_writeCon1.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
 		offlinemsg_writeCon2.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))
 		offlinemsg_writeCon3.Do("SELECT", atomic.LoadInt32(&offlinemsg_redisDBIndex))

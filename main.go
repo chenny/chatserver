@@ -27,7 +27,7 @@ func init() {
 
 	// 设置cpu数量和日志目录
 	runtime.GOMAXPROCS(config.NumCpu)
-	// setLogOutput(config.LogFile)
+	setLogOutput(config.LogFile)
 
 	// 服务器初始化
 	svr = server.NewServer()
