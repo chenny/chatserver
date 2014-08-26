@@ -1,7 +1,6 @@
 //
-// 处理每个用户的C2C离线消息, 每条消息的编号都是全局唯一的
-// 编号是 消息加上一些额外的信息(时间，uuid等)计算出来的md5值
-// uuid的离线消息编号保存在redis中， uuid --> msgid1, msgid2, msgid3, ...
+// 处理每个用户的C2C离线消息
+// uuid的离线消息保存在redis中， uuid --> msg1, msg2, msg3, ...
 //
 package c2c
 
