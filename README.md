@@ -65,7 +65,7 @@ redis存储所有数据
 
 ####C2C、讨论组聊天以及离线消息请求
 
-详见：github.com/gansidui/chatserver/pb/pb.proto
+详见：https://github.com/gansidui/chatserver/blob/master/pb/pb.proto
 
 
 ###使用方法
