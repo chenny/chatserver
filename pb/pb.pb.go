@@ -13,7 +13,23 @@ It has these top-level messages:
 	PbServerAcceptLogin
 	PbClientLogout
 	PbClientPing
+	PbClientBuildGroup
+	PbServerNotifyBuildGroup
+	PbClientDisbandGroup
+	PbServerNotifyDisbandGroup
+	PbClientJoinGroup
+	PbServerNotifyJoinGroup
+	PbClientLeaveGroup
+	PbServerNotifyLeaveGroup
+	PbGroupInfo
 	PbC2CTextChat
+	PbClientRequestC2COfflineMsg
+	PbServerResponseC2COfflineMsg
+	PbGroupTextChat
+	PbClientRequestGroupOfflineMsg
+	PbServerResponseGroupOfflineMsg
+	PbClientRequestGroupInfo
+	PbServerResponseGroupInfo
 */
 package pb
 
@@ -142,7 +158,368 @@ func (m *PbClientPing) GetTimestamp() int64 {
 	return 0
 }
 
-// 客户端之间聊天
+// 客户端申请建立讨论组
+type PbClientBuildGroup struct {
+	GroupName        *string `protobuf:"bytes,1,req,name=group_name" json:"group_name,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,2,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientBuildGroup) Reset()         { *m = PbClientBuildGroup{} }
+func (m *PbClientBuildGroup) String() string { return proto.CompactTextString(m) }
+func (*PbClientBuildGroup) ProtoMessage()    {}
+
+func (m *PbClientBuildGroup) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbClientBuildGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器回应客户端建立讨论组是否成功
+type PbServerNotifyBuildGroup struct {
+	Build            *bool   `protobuf:"varint,1,req,name=build" json:"build,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	GroupName        *string `protobuf:"bytes,3,req,name=group_name" json:"group_name,omitempty"`
+	OwnerUuid        *string `protobuf:"bytes,4,req,name=owner_uuid" json:"owner_uuid,omitempty"`
+	TipsMsg          *string `protobuf:"bytes,5,opt,name=tips_msg" json:"tips_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,6,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerNotifyBuildGroup) Reset()         { *m = PbServerNotifyBuildGroup{} }
+func (m *PbServerNotifyBuildGroup) String() string { return proto.CompactTextString(m) }
+func (*PbServerNotifyBuildGroup) ProtoMessage()    {}
+
+func (m *PbServerNotifyBuildGroup) GetBuild() bool {
+	if m != nil && m.Build != nil {
+		return *m.Build
+	}
+	return false
+}
+
+func (m *PbServerNotifyBuildGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbServerNotifyBuildGroup) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbServerNotifyBuildGroup) GetOwnerUuid() string {
+	if m != nil && m.OwnerUuid != nil {
+		return *m.OwnerUuid
+	}
+	return ""
+}
+
+func (m *PbServerNotifyBuildGroup) GetTipsMsg() string {
+	if m != nil && m.TipsMsg != nil {
+		return *m.TipsMsg
+	}
+	return ""
+}
+
+func (m *PbServerNotifyBuildGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端（群主）申请解散讨论组
+type PbClientDisbandGroup struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,3,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientDisbandGroup) Reset()         { *m = PbClientDisbandGroup{} }
+func (m *PbClientDisbandGroup) String() string { return proto.CompactTextString(m) }
+func (*PbClientDisbandGroup) ProtoMessage()    {}
+
+func (m *PbClientDisbandGroup) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientDisbandGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbClientDisbandGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器回应客户端（群主）解散讨论组是否成功
+type PbServerNotifyDisbandGroup struct {
+	Disband          *bool   `protobuf:"varint,1,req,name=disband" json:"disband,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	GroupName        *string `protobuf:"bytes,3,req,name=group_name" json:"group_name,omitempty"`
+	TipsMsg          *string `protobuf:"bytes,4,opt,name=tips_msg" json:"tips_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,5,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerNotifyDisbandGroup) Reset()         { *m = PbServerNotifyDisbandGroup{} }
+func (m *PbServerNotifyDisbandGroup) String() string { return proto.CompactTextString(m) }
+func (*PbServerNotifyDisbandGroup) ProtoMessage()    {}
+
+func (m *PbServerNotifyDisbandGroup) GetDisband() bool {
+	if m != nil && m.Disband != nil {
+		return *m.Disband
+	}
+	return false
+}
+
+func (m *PbServerNotifyDisbandGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbServerNotifyDisbandGroup) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbServerNotifyDisbandGroup) GetTipsMsg() string {
+	if m != nil && m.TipsMsg != nil {
+		return *m.TipsMsg
+	}
+	return ""
+}
+
+func (m *PbServerNotifyDisbandGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端申请加入讨论组
+type PbClientJoinGroup struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	NoteMsg          *string `protobuf:"bytes,3,opt,name=note_msg" json:"note_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientJoinGroup) Reset()         { *m = PbClientJoinGroup{} }
+func (m *PbClientJoinGroup) String() string { return proto.CompactTextString(m) }
+func (*PbClientJoinGroup) ProtoMessage()    {}
+
+func (m *PbClientJoinGroup) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientJoinGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbClientJoinGroup) GetNoteMsg() string {
+	if m != nil && m.NoteMsg != nil {
+		return *m.NoteMsg
+	}
+	return ""
+}
+
+func (m *PbClientJoinGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器向讨论组的所有成员发送有新人加入的通知
+type PbServerNotifyJoinGroup struct {
+	ApplicantUuid    *string `protobuf:"bytes,1,req,name=applicant_uuid" json:"applicant_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	GroupName        *string `protobuf:"bytes,3,req,name=group_name" json:"group_name,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerNotifyJoinGroup) Reset()         { *m = PbServerNotifyJoinGroup{} }
+func (m *PbServerNotifyJoinGroup) String() string { return proto.CompactTextString(m) }
+func (*PbServerNotifyJoinGroup) ProtoMessage()    {}
+
+func (m *PbServerNotifyJoinGroup) GetApplicantUuid() string {
+	if m != nil && m.ApplicantUuid != nil {
+		return *m.ApplicantUuid
+	}
+	return ""
+}
+
+func (m *PbServerNotifyJoinGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbServerNotifyJoinGroup) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbServerNotifyJoinGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端申请退出讨论组
+type PbClientLeaveGroup struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,3,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientLeaveGroup) Reset()         { *m = PbClientLeaveGroup{} }
+func (m *PbClientLeaveGroup) String() string { return proto.CompactTextString(m) }
+func (*PbClientLeaveGroup) ProtoMessage()    {}
+
+func (m *PbClientLeaveGroup) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientLeaveGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbClientLeaveGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器向讨论组的所有成员发送有人退出的通知
+type PbServerNotifyLeaveGroup struct {
+	LeaverUuid       *string `protobuf:"bytes,1,req,name=leaver_uuid" json:"leaver_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	GroupName        *string `protobuf:"bytes,3,req,name=group_name" json:"group_name,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerNotifyLeaveGroup) Reset()         { *m = PbServerNotifyLeaveGroup{} }
+func (m *PbServerNotifyLeaveGroup) String() string { return proto.CompactTextString(m) }
+func (*PbServerNotifyLeaveGroup) ProtoMessage()    {}
+
+func (m *PbServerNotifyLeaveGroup) GetLeaverUuid() string {
+	if m != nil && m.LeaverUuid != nil {
+		return *m.LeaverUuid
+	}
+	return ""
+}
+
+func (m *PbServerNotifyLeaveGroup) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbServerNotifyLeaveGroup) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbServerNotifyLeaveGroup) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 讨论组成员信息
+type PbGroupInfo struct {
+	GroupId          *string  `protobuf:"bytes,1,req,name=group_id" json:"group_id,omitempty"`
+	GroupName        *string  `protobuf:"bytes,2,req,name=group_name" json:"group_name,omitempty"`
+	OwnerUuid        *string  `protobuf:"bytes,3,req,name=owner_uuid" json:"owner_uuid,omitempty"`
+	MemberUuid       []string `protobuf:"bytes,4,rep,name=member_uuid" json:"member_uuid,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
+}
+
+func (m *PbGroupInfo) Reset()         { *m = PbGroupInfo{} }
+func (m *PbGroupInfo) String() string { return proto.CompactTextString(m) }
+func (*PbGroupInfo) ProtoMessage()    {}
+
+func (m *PbGroupInfo) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbGroupInfo) GetGroupName() string {
+	if m != nil && m.GroupName != nil {
+		return *m.GroupName
+	}
+	return ""
+}
+
+func (m *PbGroupInfo) GetOwnerUuid() string {
+	if m != nil && m.OwnerUuid != nil {
+		return *m.OwnerUuid
+	}
+	return ""
+}
+
+func (m *PbGroupInfo) GetMemberUuid() []string {
+	if m != nil {
+		return m.MemberUuid
+	}
+	return nil
+}
+
+// C2C在线消息
 type PbC2CTextChat struct {
 	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
 	ToUuid           *string `protobuf:"bytes,2,req,name=to_uuid" json:"to_uuid,omitempty"`
@@ -177,6 +554,237 @@ func (m *PbC2CTextChat) GetTextMsg() string {
 }
 
 func (m *PbC2CTextChat) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端请求C2C离线消息
+type PbClientRequestC2COfflineMsg struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,2,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientRequestC2COfflineMsg) Reset()         { *m = PbClientRequestC2COfflineMsg{} }
+func (m *PbClientRequestC2COfflineMsg) String() string { return proto.CompactTextString(m) }
+func (*PbClientRequestC2COfflineMsg) ProtoMessage()    {}
+
+func (m *PbClientRequestC2COfflineMsg) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientRequestC2COfflineMsg) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器推送C2C离线消息，跟C2C在线消息完全相同
+type PbServerResponseC2COfflineMsg struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	ToUuid           *string `protobuf:"bytes,2,req,name=to_uuid" json:"to_uuid,omitempty"`
+	TextMsg          *string `protobuf:"bytes,3,req,name=text_msg" json:"text_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerResponseC2COfflineMsg) Reset()         { *m = PbServerResponseC2COfflineMsg{} }
+func (m *PbServerResponseC2COfflineMsg) String() string { return proto.CompactTextString(m) }
+func (*PbServerResponseC2COfflineMsg) ProtoMessage()    {}
+
+func (m *PbServerResponseC2COfflineMsg) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbServerResponseC2COfflineMsg) GetToUuid() string {
+	if m != nil && m.ToUuid != nil {
+		return *m.ToUuid
+	}
+	return ""
+}
+
+func (m *PbServerResponseC2COfflineMsg) GetTextMsg() string {
+	if m != nil && m.TextMsg != nil {
+		return *m.TextMsg
+	}
+	return ""
+}
+
+func (m *PbServerResponseC2COfflineMsg) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 讨论组在线消息
+type PbGroupTextChat struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	TextMsg          *string `protobuf:"bytes,3,req,name=text_msg" json:"text_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbGroupTextChat) Reset()         { *m = PbGroupTextChat{} }
+func (m *PbGroupTextChat) String() string { return proto.CompactTextString(m) }
+func (*PbGroupTextChat) ProtoMessage()    {}
+
+func (m *PbGroupTextChat) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbGroupTextChat) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbGroupTextChat) GetTextMsg() string {
+	if m != nil && m.TextMsg != nil {
+		return *m.TextMsg
+	}
+	return ""
+}
+
+func (m *PbGroupTextChat) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端请求讨论组离线消息
+type PbClientRequestGroupOfflineMsg struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,2,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientRequestGroupOfflineMsg) Reset()         { *m = PbClientRequestGroupOfflineMsg{} }
+func (m *PbClientRequestGroupOfflineMsg) String() string { return proto.CompactTextString(m) }
+func (*PbClientRequestGroupOfflineMsg) ProtoMessage()    {}
+
+func (m *PbClientRequestGroupOfflineMsg) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientRequestGroupOfflineMsg) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器推送讨论组离线消息，跟讨论组在线消息完全相同
+type PbServerResponseGroupOfflineMsg struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	GroupId          *string `protobuf:"bytes,2,req,name=group_id" json:"group_id,omitempty"`
+	TextMsg          *string `protobuf:"bytes,3,req,name=text_msg" json:"text_msg,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,4,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbServerResponseGroupOfflineMsg) Reset()         { *m = PbServerResponseGroupOfflineMsg{} }
+func (m *PbServerResponseGroupOfflineMsg) String() string { return proto.CompactTextString(m) }
+func (*PbServerResponseGroupOfflineMsg) ProtoMessage()    {}
+
+func (m *PbServerResponseGroupOfflineMsg) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbServerResponseGroupOfflineMsg) GetGroupId() string {
+	if m != nil && m.GroupId != nil {
+		return *m.GroupId
+	}
+	return ""
+}
+
+func (m *PbServerResponseGroupOfflineMsg) GetTextMsg() string {
+	if m != nil && m.TextMsg != nil {
+		return *m.TextMsg
+	}
+	return ""
+}
+
+func (m *PbServerResponseGroupOfflineMsg) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 客户端请求获取讨论组信息
+type PbClientRequestGroupInfo struct {
+	FromUuid         *string `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	Timestamp        *int64  `protobuf:"varint,2,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PbClientRequestGroupInfo) Reset()         { *m = PbClientRequestGroupInfo{} }
+func (m *PbClientRequestGroupInfo) String() string { return proto.CompactTextString(m) }
+func (*PbClientRequestGroupInfo) ProtoMessage()    {}
+
+func (m *PbClientRequestGroupInfo) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbClientRequestGroupInfo) GetTimestamp() int64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
+}
+
+// 服务器推送讨论组信息
+type PbServerResponseGroupInfo struct {
+	FromUuid         *string        `protobuf:"bytes,1,req,name=from_uuid" json:"from_uuid,omitempty"`
+	AllGroupInfo     []*PbGroupInfo `protobuf:"bytes,2,rep,name=all_group_info" json:"all_group_info,omitempty"`
+	Timestamp        *int64         `protobuf:"varint,3,req,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte         `json:"-"`
+}
+
+func (m *PbServerResponseGroupInfo) Reset()         { *m = PbServerResponseGroupInfo{} }
+func (m *PbServerResponseGroupInfo) String() string { return proto.CompactTextString(m) }
+func (*PbServerResponseGroupInfo) ProtoMessage()    {}
+
+func (m *PbServerResponseGroupInfo) GetFromUuid() string {
+	if m != nil && m.FromUuid != nil {
+		return *m.FromUuid
+	}
+	return ""
+}
+
+func (m *PbServerResponseGroupInfo) GetAllGroupInfo() []*PbGroupInfo {
+	if m != nil {
+		return m.AllGroupInfo
+	}
+	return nil
+}
+
+func (m *PbServerResponseGroupInfo) GetTimestamp() int64 {
 	if m != nil && m.Timestamp != nil {
 		return *m.Timestamp
 	}

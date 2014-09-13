@@ -1,17 +1,21 @@
 package pb;
 
+// ---------------------------------------------------------------
+// ---------------------登陆、心跳--------------------------------
+// ---------------------------------------------------------------
+
 // 客户端登陆聊天服务器
 message PbClientLogin
 {
-	required string uuid = 1;   // 用户标志
-	required float version = 2;  // 客户端的版本号
+	required string uuid = 1;     // 用户标志
+	required float version = 2;   // 客户端的版本号
 	required int64 timestamp = 3;  // 时间戳
 }
 
 // 服务器通知客户端是否接受连接
 message PbServerAcceptLogin
 {
-	required bool login = 1;  // 为true表示登陆成功，否则表示失败
+	required bool login = 1;        // 为true表示登陆成功，否则表示失败
 	required string tips_msg = 2;   // 提示消息
 	required int64 timestamp = 3;  // 时间戳
 }
@@ -30,11 +34,160 @@ message PbClientPing
 	required int64 timestamp = 2;  // 时间戳
 }
 
-// 客户端之间聊天
+
+
+// ---------------------------------------------------------------
+// ---------------------讨论组--------------------------------
+// 目前加入讨论组不需要经过群主同意
+// ---------------------------------------------------------------
+
+// 客户端申请建立讨论组
+message PbClientBuildGroup
+{
+	required string group_name = 1;      // 讨论组名字
+	required int64 timestamp = 2;       // 时间戳
+}
+
+// 服务器回应客户端建立讨论组是否成功
+message PbServerNotifyBuildGroup
+{
+	required bool build = 1;          // 为true表示成功，false表示失败
+	required string group_id = 2;     // 分配的讨论组 ID
+	required string group_name = 3;   // 讨论组名字
+	required string owner_uuid = 4;    // 群主ID
+	optional string tips_msg = 5;     // 提示消息
+	required int64 timestamp = 6;     // 时间戳
+}
+
+// 客户端（群主）申请解散讨论组
+message PbClientDisbandGroup
+{
+	required string from_uuid = 1;   // 发送者
+	required string group_id = 2;    // 讨论组 ID
+	required int64 timestamp = 3;    // 时间戳
+}
+
+// 服务器回应客户端（群主）解散讨论组是否成功
+message PbServerNotifyDisbandGroup
+{
+	required bool disband = 1;       // 为true表示成功，false表示失败
+	required string group_id = 2;    // 讨论组 ID
+	required string group_name = 3;  // 讨论组名字
+	optional string tips_msg = 4;    // 提示消息
+	required int64 timestamp = 5;    // 时间戳
+}
+
+// 客户端申请加入讨论组
+message PbClientJoinGroup
+{
+	required string from_uuid = 1;     // 发送者
+	required string group_id = 2;      // 讨论组 ID
+	optional string note_msg = 3;      // 备注
+	required int64 timestamp = 4;     // 时间戳
+}
+
+// 服务器向讨论组的所有成员发送有新人加入的通知
+message PbServerNotifyJoinGroup
+{
+	required string applicant_uuid = 1;  // 申请者
+	required string group_id = 2;       // 讨论组 ID
+	required string group_name = 3;     // 讨论组名字
+	required int64 timestamp = 4;      // 时间戳
+}
+
+// 客户端申请退出讨论组
+message PbClientLeaveGroup
+{
+	required string from_uuid = 1;   // 发送者
+	required string group_id = 2;   // 讨论组 ID
+	required int64 timestamp = 3;   // 时间戳
+}
+
+// 服务器向讨论组的所有成员发送有人退出的通知
+message PbServerNotifyLeaveGroup
+{
+	required string leaver_uuid = 1;   // 离开者
+	required string group_id = 2;     // 讨论组 ID
+	required string group_name = 3;   // 讨论组名字
+	required int64 timestamp = 4;    // 时间戳
+}
+
+// 讨论组成员信息
+message PbGroupInfo
+{
+	required string group_id = 1;     // 讨论组 ID
+	required string group_name = 2;   // 讨论组名字
+	required string owner_uuid = 3;   // 群主 ID
+	repeated string member_uuid = 4;  // 群成员ID (不包含群主)
+}
+
+
+
+// ---------------------------------------------------------------
+// ---------C2C、讨论组 -- 在线消息推送、离线消息请求及推送-------
+// ---------------------------------------------------------------
+
+// C2C在线消息
 message PbC2CTextChat
 {
 	required string from_uuid = 1;  // 发送者
 	required string to_uuid = 2;    // 接收者
 	required string text_msg = 3;  // 文本消息
 	required int64 timestamp = 4;  // 时间戳
+}
+
+// 客户端请求C2C离线消息
+message PbClientRequestC2COfflineMsg
+{
+	required string from_uuid = 1;  // 发送者
+	required int64 timestamp = 2;   // 时间戳 
+}
+
+// 服务器推送C2C离线消息，跟C2C在线消息完全相同
+message PbServerResponseC2COfflineMsg
+{
+	required string from_uuid = 1;  // 发送者
+	required string to_uuid = 2;    // 接收者
+	required string text_msg = 3;  // 文本消息
+	required int64 timestamp = 4;  // 时间戳
+}
+
+// 讨论组在线消息
+message PbGroupTextChat
+{
+	required string from_uuid = 1;   // 发送者
+	required string group_id = 2;   // 讨论组 ID
+	required string text_msg = 3;   // 文本消息
+	required int64 timestamp = 4;   // 时间戳
+}
+
+// 客户端请求讨论组离线消息
+message PbClientRequestGroupOfflineMsg
+{
+	required string from_uuid = 1;   // 发送者
+	required int64 timestamp = 2;    // 时间戳
+}
+
+// 服务器推送讨论组离线消息，跟讨论组在线消息完全相同
+message PbServerResponseGroupOfflineMsg
+{
+	required string from_uuid = 1;   // 发送者
+	required string group_id = 2;   // 讨论组 ID
+	required string text_msg = 3;   // 文本消息
+	required int64 timestamp = 4;   // 时间戳
+}
+
+// 客户端请求获取讨论组信息
+message PbClientRequestGroupInfo
+{
+	required string from_uuid = 1;   // 发送者
+	required int64 timestamp = 2;    // 时间戳
+}
+
+// 服务器推送讨论组信息
+message PbServerResponseGroupInfo
+{
+	required string from_uuid = 1;            // 发送者
+	repeated PbGroupInfo all_group_info = 2;  // 该用户的所有讨论组信息
+	required int64 timestamp = 3;             // 时间戳
 }

@@ -4,14 +4,11 @@ import (
 	proto "code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao/c2c"
 	"github.com/gansidui/chatserver/dao/cid"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/report"
-	"github.com/gansidui/chatserver/utils/convert"
 	"github.com/gansidui/chatserver/utils/safemap"
-	"log"
 	"net"
 	"time"
 )
@@ -68,7 +65,7 @@ func SendPbData(conn *net.TCPConn, dataType uint32, pb interface{}) error {
 	return SendByteStream(conn, pac.GetBytes())
 }
 
-// 处理登陆
+// 客户端登陆
 func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 	// read
 	readMsg := &pb.PbClientLogin{}
@@ -102,33 +99,20 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 		Timestamp: proto.Int64(time.Now().Unix()),
 	}
 	SendPbData(conn, packet.PK_ServerAcceptLogin, writeMsg)
-
-	// 检查是否有该uuid的离线消息存在，若有，则发送其离线消息
-	if offmsgNum := c2c.GetMsgNum(uuid); offmsgNum > 0 {
-		// 这里比较复杂，后续再优化(可以多个离线消息一起发送)
-		// 得到所有离线消息
-		// fmt.Println("转发离线消息")
-		msgs := c2c.GetMsgs(uuid, offmsgNum)
-		c2c.DeleteMsgs(uuid, offmsgNum, offmsgNum)
-		for i, _ := range msgs {
-			SendByteStream(conn, []byte(msgs[i]))
-		}
-	}
 }
 
-// 处理下线
+// 客户端下线
 func HandleClientLogout(conn *net.TCPConn, recPacket *packet.Packet) {
 	// read
 	readMsg := &pb.PbClientLogout{}
 	packet.Unpack(recPacket, readMsg)
 
-	fmt.Println("logout:", readMsg.GetLogout())
-	fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
-
+	// fmt.Println("logout:", readMsg.GetLogout())
+	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
 	CloseConn(conn)
 }
 
-// 处理心跳
+// 心跳包
 func HandleClientPing(conn *net.TCPConn, recPacket *packet.Packet) {
 	// read
 	// readMsg := &pb.PbClientPing{}
@@ -136,52 +120,4 @@ func HandleClientPing(conn *net.TCPConn, recPacket *packet.Packet) {
 
 	// fmt.Println("ping:", readMsg.GetPing())
 	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
-}
-
-// 处理客户端之间的消息转发
-func HandleC2CTextChat(conn *net.TCPConn, recPacket *packet.Packet) {
-	// read
-	readMsg := &pb.PbC2CTextChat{}
-	packet.Unpack(recPacket, readMsg)
-
-	from_uuid := ConnMapUuid.Get(conn).(string)
-	to_uuid := readMsg.GetToUuid()
-	txt_msg := readMsg.GetTextMsg()
-	timestamp := readMsg.GetTimestamp()
-
-	// 验证发送者的真实性以及发送对象是否存，若消息伪造，则断开该连接
-	if readMsg.GetFromUuid() != from_uuid || !cid.UuidCheckExist(to_uuid) {
-		CloseConn(conn)
-		return
-	}
-
-	// write
-	writeMsg := &pb.PbC2CTextChat{
-		FromUuid:  proto.String(from_uuid),
-		ToUuid:    proto.String(to_uuid),
-		TextMsg:   proto.String(txt_msg),
-		Timestamp: proto.Int64(timestamp),
-	}
-	pac, err := packet.Pack(packet.PK_C2CTextChat, writeMsg)
-	if err != nil {
-		log.Printf("%v\r\n", err)
-		return
-	}
-
-	// 若 to_uuid 在线，则转发该消息，发送失败 或者 to_uuid不在线 则保存为离线消息
-	if cid.UuidCheckOnline(to_uuid) {
-		// fmt.Println("在线消息转发")
-		to_conn := UuidMapConn.Get(to_uuid).(*net.TCPConn)
-		if SendByteStream(to_conn, pac.GetBytes()) != nil {
-			// fmt.Println("发送失败转离线消息保存")
-			c2c.AddMsg(to_uuid, string(pac.GetBytes()))
-			report.AddCount(report.OfflineMsg, 1)
-		} else {
-			report.AddCount(report.OnlineMsg, 1)
-		}
-	} else {
-		// fmt.Println("不在线转离线消息保存")
-		c2c.AddMsg(to_uuid, string(pac.GetBytes()))
-		report.AddCount(report.OfflineMsg, 1)
-	}
 }

@@ -23,11 +23,27 @@ import (
 
 // 数据包的类型
 const (
-	PK_ClientLogin       = uint32(1)
-	PK_ServerAcceptLogin = uint32(2)
-	PK_ClientLogout      = uint32(3)
-	PK_ClientPing        = uint32(4)
-	PK_C2CTextChat       = uint32(5)
+	PK_ClientLogin                   = uint32(1)
+	PK_ServerAcceptLogin             = uint32(2)
+	PK_ClientLogout                  = uint32(3)
+	PK_ClientPing                    = uint32(4)
+	PK_C2CTextChat                   = uint32(5)
+	PK_ClientRequestC2COfflineMsg    = uint32(6)
+	PK_ServerResponseC2COfflineMsg   = uint32(7)
+	PK_GroupTextChat                 = uint32(8)
+	PK_ClientRequestGroupOfflineMsg  = uint32(9)
+	PK_ServerResponseGroupOfflineMsg = uint32(10)
+	PK_ClientRequestGroupInfo        = uint32(11)
+	PK_ServerResponseGroupInfo       = uint32(12)
+	PK_ClientBuildGroup              = uint32(13)
+	PK_ServerNotifyBuildGroup        = uint32(14)
+	PK_ClientDisbandGroup            = uint32(15)
+	PK_ServerNotifyDisbandGroup      = uint32(16)
+	PK_ClientJoinGroup               = uint32(17)
+	PK_ServerNotifyJoinGroup         = uint32(18)
+	PK_ClientLeaveGroup              = uint32(19)
+	PK_ServerNotifyLeaveGroup        = uint32(20)
+	PK_GroupInfo                     = uint32(21)
 )
 
 type Packet struct {

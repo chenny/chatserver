@@ -2,7 +2,9 @@ package main
 
 import (
 	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao/c2c"
+	"github.com/gansidui/chatserver/dao/c2c/c2cmsg"
+	"github.com/gansidui/chatserver/dao/group/groupinfo"
+	"github.com/gansidui/chatserver/dao/group/groupmsg"
 	"github.com/gansidui/chatserver/handlers"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/server"
@@ -22,8 +24,10 @@ func init() {
 	err := config.ReadIniFile("./config.ini")
 	checkError(err)
 
-	// 初始化redis db 连接
-	c2c.InitRedisDB()
+	// 初始化dao
+	c2cmsg.Init()
+	groupmsg.Init()
+	groupinfo.Init()
 
 	// 设置cpu数量和日志目录
 	runtime.GOMAXPROCS(config.NumCpu)
@@ -36,14 +40,13 @@ func init() {
 	svr.SetWriteTimeout(time.Duration(config.WriteTimeout) * time.Second)
 
 	// 消息处理函数绑定
-	svr.BindMsgHandler(packet.PK_ClientLogin, handlers.HandleClientLogin)
-	svr.BindMsgHandler(packet.PK_ClientLogout, handlers.HandleClientLogout)
-	svr.BindMsgHandler(packet.PK_ClientPing, handlers.HandleClientPing)
-	svr.BindMsgHandler(packet.PK_C2CTextChat, handlers.HandleC2CTextChat)
+	bindMsgHandler()
 }
 
 func clean() {
-	c2c.Clean()
+	c2cmsg.Clean()
+	groupmsg.Clean()
+	groupinfo.Clean()
 }
 
 func main() {
@@ -82,4 +85,25 @@ func setLogOutput(filepath string) {
 		log.Printf("%v\r\n", err)
 	}
 	log.SetOutput(logfile)
+}
+
+// 绑定 msg --> handler
+func bindMsgHandler() {
+	// 登陆和心跳
+	svr.BindMsgHandler(packet.PK_ClientLogin, handlers.HandleClientLogin)
+	svr.BindMsgHandler(packet.PK_ClientLogout, handlers.HandleClientLogout)
+	svr.BindMsgHandler(packet.PK_ClientPing, handlers.HandleClientPing)
+
+	// C2C、讨论组消息处理
+	svr.BindMsgHandler(packet.PK_C2CTextChat, handlers.HandleC2CTextChat)
+	svr.BindMsgHandler(packet.PK_ClientRequestC2COfflineMsg, handlers.HandleClientRequestC2COfflineMsg)
+	svr.BindMsgHandler(packet.PK_GroupTextChat, handlers.HandleGroupTextChat)
+	svr.BindMsgHandler(packet.PK_ClientRequestGroupOfflineMsg, handlers.HandleClientRequestGroupOfflineMsg)
+	svr.BindMsgHandler(packet.PK_ClientRequestGroupInfo, handlers.HandleClientRequestGroupInfo)
+
+	// 讨论组的建立，加入讨论组，解散讨论组等
+	svr.BindMsgHandler(packet.PK_ClientBuildGroup, handlers.HandleClientBuildGroup)
+	svr.BindMsgHandler(packet.PK_ClientDisbandGroup, handlers.HandleClientDisbandGroup)
+	svr.BindMsgHandler(packet.PK_ClientJoinGroup, handlers.HandleClientJoinGroup)
+	svr.BindMsgHandler(packet.PK_ClientLeaveGroup, handlers.HandleClientLeaveGroup)
 }

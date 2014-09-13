@@ -1,10 +1,12 @@
-package c2c
+package c2cmsg
 
 import (
 	"testing"
 )
 
 func TestOfflineMsg(t *testing.T) {
+	Init()
+
 	if GetMsgNum("jay") != 0 {
 		t.Fatal()
 	}

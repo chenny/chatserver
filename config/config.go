@@ -6,20 +6,28 @@ import (
 )
 
 var (
-	Addr                           string
-	NumCpu                         int
-	AcceptTimeout                  int
-	ReadTimeout                    int
-	WriteTimeout                   int
-	C2COfflinemsgRedisAddr         string
-	C2COfflinemsgRedisKeyExpireDay string
-	LogFile                        string
-	EmailServerAddr                string
-	EmailServerPort                string
-	EmailAccount                   string
-	EmailPassword                  string
-	EmailToList                    string
-	EmailDuration                  int
+	Addr          string
+	NumCpu        int
+	AcceptTimeout int
+	ReadTimeout   int
+	WriteTimeout  int
+
+	C2CRedisAddr            string
+	C2CRedisKeyExpire       string
+	GroupRedisAddr          string
+	GroupRedisKeyExpire     string
+	UuidGroupRedisAddr      string
+	UuidGroupRedisKeyExpire string
+	GroupUuidRedisAddr      string
+	GroupUuidRedisKeyExpire string
+
+	LogFile         string
+	EmailServerAddr string
+	EmailServerPort string
+	EmailAccount    string
+	EmailPassword   string
+	EmailToList     string
+	EmailDuration   int
 )
 
 func ReadIniFile(inifile string) error {
@@ -34,8 +42,14 @@ func ReadIniFile(inifile string) error {
 	ReadTimeout, _ = conf.Int("service", "read_timeout")
 	WriteTimeout, _ = conf.Int("service", "write_timeout")
 
-	C2COfflinemsgRedisAddr, _ = conf.String("redisdb", "c2c_offlinemsg_redisAddr")
-	C2COfflinemsgRedisKeyExpireDay, _ = conf.String("redisdb", "c2c_offlinemsg_redisKeyExpireDay")
+	C2CRedisAddr, _ = conf.String("redisdb", "c2c_redisAddr")
+	C2CRedisKeyExpire, _ = conf.String("redisdb", "c2c_redisKeyExpire")
+	GroupRedisAddr, _ = conf.String("redisdb", "group_redisAddr")
+	GroupRedisKeyExpire, _ = conf.String("redisdb", "group_redisKeyExpire")
+	UuidGroupRedisAddr, _ = conf.String("redisdb", "uuid_group_redisAddr")
+	UuidGroupRedisKeyExpire, _ = conf.String("redisdb", "uuid_group_redisKeyExpire")
+	GroupUuidRedisAddr, _ = conf.String("redisdb", "group_uuid_redisAddr")
+	GroupUuidRedisKeyExpire, _ = conf.String("redisdb", "group_uuid_redisKeyExpire")
 
 	LogFile, _ = conf.String("debug", "logfile")
 
