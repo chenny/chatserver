@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"github.com/gansidui/chatserver/dao/c2c/c2cmsg"
 	"github.com/gansidui/chatserver/dao/cid"
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/report"
+	proto "github.com/golang/protobuf/proto"
 	"log"
 	"net"
 	"time"

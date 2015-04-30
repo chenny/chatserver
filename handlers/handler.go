@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/gansidui/chatserver/config"
 	"github.com/gansidui/chatserver/dao/cid"
@@ -9,6 +8,7 @@ import (
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/report"
 	"github.com/gansidui/chatserver/utils/safemap"
+	proto "github.com/golang/protobuf/proto"
 	"net"
 	"time"
 )
@@ -88,7 +88,9 @@ func HandleClientLogin(conn *net.TCPConn, recPacket *packet.Packet) {
 		CloseConn(conn)
 	}
 
-	// fmt.Println("uuid:", readMsg.GetUuid())
+	fmt.Println("recPacket=:", recPacket)
+	fmt.Println("readMsg=:", readMsg)
+	fmt.Println("uuid:", readMsg.GetUuid())
 	// fmt.Println("version:", readMsg.GetVersion())
 	// fmt.Println("timestamp:", convert.TimestampToTimeString(readMsg.GetTimestamp()))
 

@@ -1,10 +1,10 @@
 package packet
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/gansidui/chatserver/utils/aes"
 	. "github.com/gansidui/chatserver/utils/convert"
+	proto "github.com/golang/protobuf/proto"
 )
 
 // ---------------------------数据包构造------------------------------------

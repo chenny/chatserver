@@ -1,7 +1,6 @@
 package main
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"flag"
 	"fmt"
 	"github.com/gansidui/chatserver/config"
@@ -9,6 +8,7 @@ import (
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
+	proto "github.com/golang/protobuf/proto"
 	"io"
 	"log"
 	"math/rand"
@@ -27,6 +27,7 @@ var (
 )
 
 func getUuid(uuid int) string {
+	//return strconv.Itoa(uuid)
 	return prefix + strconv.Itoa(uuid)
 }
 
@@ -80,7 +81,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					writeMsg := &pb.PbC2CTextChat{
 						FromUuid:  proto.String(getUuid(uuid)),
 						ToUuid:    proto.String(getUuid(to_uuid)),
-						TextMsg:   proto.String(strings.Repeat("hello,世界！！！", 5)),
+						TextMsg:   proto.String(strings.Repeat("hello,世界！！！", 2)),
 						Timestamp: proto.Int64(time.Now().Unix()),
 					}
 					handlers.SendPbData(conn, packet.PK_C2CTextChat, writeMsg)
@@ -103,7 +104,7 @@ func handlePackets(uuid int, conn *net.TCPConn, receivePackets <-chan *packet.Pa
 					var to_txt_msg string
 					var add_txt string = " 你好 hello world"
 
-					if len(txt_msg)+len(add_txt) <= 1024 {
+					if len(txt_msg)+len(add_txt) <= 64 {
 						to_txt_msg = txt_msg + add_txt
 					} else {
 						to_txt_msg = txt_msg
@@ -204,7 +205,7 @@ func testClient(uuid int) {
 }
 
 func main() {
-	for i := 1; i <= total; i++ {
+	for i := 1; i <= 2; i++ {
 		time.Sleep(50 * time.Millisecond)
 		go testClient(i)
 	}
@@ -215,7 +216,7 @@ func main() {
 }
 
 func init() {
-	flag.IntVar(&total, "t", 100, "uuid的总数")
+	flag.IntVar(&total, "t", 10, "uuid的总数")
 	flag.Parse()
 	// 读取配置文件
 	err := config.ReadIniFile("../config.ini")
@@ -225,7 +226,7 @@ func init() {
 
 	//
 	rand.Seed(time.Now().UnixNano())
-	x := rand.Intn(10000)
-	y := rand.Intn(10000)
+	x := rand.Intn(10)
+	y := rand.Intn(10)
 	prefix = "[" + strconv.Itoa(x) + strconv.Itoa(y) + "]--> "
 }

@@ -1,10 +1,10 @@
 package packet
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
+	proto "github.com/golang/protobuf/proto"
 	"testing"
 	"time"
 )

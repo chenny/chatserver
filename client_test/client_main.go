@@ -1,7 +1,6 @@
 package main
 
 import (
-	proto "code.google.com/p/goprotobuf/proto"
 	"flag"
 	"fmt"
 	"github.com/gansidui/chatserver/config"
@@ -9,6 +8,7 @@ import (
 	"github.com/gansidui/chatserver/packet"
 	"github.com/gansidui/chatserver/pb"
 	"github.com/gansidui/chatserver/utils/convert"
+	proto "github.com/golang/protobuf/proto"
 	"io"
 	"log"
 	"net"
@@ -34,7 +34,7 @@ func ping(conn *net.TCPConn) {
 		if err != nil {
 			return
 		}
-		fmt.Println(conn.RemoteAddr().String(), "ping.")
+		fmt.Println(conn.RemoteAddr().String(), "ping.", time.Now().Unix())
 	}
 }
 
@@ -192,8 +192,11 @@ func main() {
 }
 
 func init() {
+	fmt.Println("my name is &+init", i_uuid)
+	fmt.Println("my name is &=init", &i_uuid)
 	flag.StringVar(&i_uuid, "i", "1", "自己的uuid")
 	flag.StringVar(&u_uuid, "u", "2", "对方的uuid")
+	fmt.Println("my name is &-init", i_uuid)
 	flag.Parse()
 	// 读取配置文件
 	err := config.ReadIniFile("../config.ini")
