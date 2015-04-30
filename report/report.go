@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/chenny/chatserver/config"
 	"github.com/chenny/chatserver/utils/convert"
-	"github.com/chenny/email"
+	"github.com/gansidui/email"
 	"log"
 	"net/smtp"
 	"strings"
