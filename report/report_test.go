@@ -1,7 +1,7 @@
 package report
 
 import (
-	"github.com/gansidui/chatserver/config"
+	"github.com/chenny/chatserver/config"
 	"testing"
 )
 

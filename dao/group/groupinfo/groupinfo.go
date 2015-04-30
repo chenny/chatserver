@@ -15,8 +15,8 @@ package groupinfo
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao/redislist"
+	"github.com/chenny/chatserver/config"
+	"github.com/chenny/chatserver/dao/redislist"
 	"io"
 	"log"
 	"strconv"

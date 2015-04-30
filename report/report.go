@@ -2,9 +2,9 @@ package report
 
 import (
 	"fmt"
-	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/utils/convert"
-	"github.com/gansidui/email"
+	"github.com/chenny/chatserver/config"
+	"github.com/chenny/chatserver/utils/convert"
+	"github.com/chenny/email"
 	"log"
 	"net/smtp"
 	"strings"

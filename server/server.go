@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
-	"github.com/gansidui/chatserver/handlers"
-	"github.com/gansidui/chatserver/packet"
-	"github.com/gansidui/chatserver/report"
-	"github.com/gansidui/chatserver/utils/convert"
-	"github.com/gansidui/chatserver/utils/funcmap"
+	"github.com/chenny/chatserver/handlers"
+	"github.com/chenny/chatserver/packet"
+	"github.com/chenny/chatserver/report"
+	"github.com/chenny/chatserver/utils/convert"
+	"github.com/chenny/chatserver/utils/funcmap"
 	"io"
 	"log"
 	"net"

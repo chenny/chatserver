@@ -2,8 +2,8 @@ package packet
 
 import (
 	"fmt"
-	"github.com/gansidui/chatserver/utils/aes"
-	. "github.com/gansidui/chatserver/utils/convert"
+	"github.com/chenny/chatserver/utils/aes"
+	. "github.com/chenny/chatserver/utils/convert"
 	proto "github.com/golang/protobuf/proto"
 )
 

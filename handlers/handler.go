@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao/cid"
-	"github.com/gansidui/chatserver/packet"
-	"github.com/gansidui/chatserver/pb"
-	"github.com/gansidui/chatserver/report"
-	"github.com/gansidui/chatserver/utils/safemap"
+	"github.com/chenny/chatserver/config"
+	"github.com/chenny/chatserver/dao/cid"
+	"github.com/chenny/chatserver/packet"
+	"github.com/chenny/chatserver/pb"
+	"github.com/chenny/chatserver/report"
+	"github.com/chenny/chatserver/utils/safemap"
 	proto "github.com/golang/protobuf/proto"
 	"net"
 	"time"

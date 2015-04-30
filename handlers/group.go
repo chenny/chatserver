@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/gansidui/chatserver/dao/cid"
-	"github.com/gansidui/chatserver/dao/group/groupinfo"
-	"github.com/gansidui/chatserver/dao/group/groupmsg"
-	"github.com/gansidui/chatserver/packet"
-	"github.com/gansidui/chatserver/pb"
+	"github.com/chenny/chatserver/dao/cid"
+	"github.com/chenny/chatserver/dao/group/groupinfo"
+	"github.com/chenny/chatserver/dao/group/groupmsg"
+	"github.com/chenny/chatserver/packet"
+	"github.com/chenny/chatserver/pb"
 	proto "github.com/golang/protobuf/proto"
 	"log"
 	"net"

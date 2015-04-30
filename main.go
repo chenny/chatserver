@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/gansidui/chatserver/config"
-	"github.com/gansidui/chatserver/dao/c2c/c2cmsg"
-	"github.com/gansidui/chatserver/dao/group/groupinfo"
-	"github.com/gansidui/chatserver/dao/group/groupmsg"
-	"github.com/gansidui/chatserver/handlers"
-	"github.com/gansidui/chatserver/packet"
-	"github.com/gansidui/chatserver/server"
+	"github.com/chenny/chatserver/config"
+	"github.com/chenny/chatserver/dao/c2c/c2cmsg"
+	"github.com/chenny/chatserver/dao/group/groupinfo"
+	"github.com/chenny/chatserver/dao/group/groupmsg"
+	"github.com/chenny/chatserver/handlers"
+	"github.com/chenny/chatserver/packet"
+	"github.com/chenny/chatserver/server"
 	"log"
 	"net"
 	"os"
